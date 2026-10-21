@@ -89,7 +89,7 @@ with st.sidebar:
     if "assistant_history" not in st.session_state:
         st.session_state.assistant_history = []
     with st.chat_message("assistant"):
-        st.markdown("👋 **¡Hola! Soy el asistente de Mi Futuro Jujuy.**\\n\\nTe ayudo a buscar qué carreras figuran en nuestra base y dónde podrías estudiarlas. Podés preguntarme por una localidad, una carrera o un tema que te interese.\\n\\n**¿Qué te gustaría conocer?**")
+        st.markdown("👋 **¡Hola! Soy el asistente de Mi Futuro Jujuy.**\n\nTe ayudo a buscar qué carreras figuran en nuestra base y dónde podrías estudiarlas. Podés preguntarme por una localidad, una carrera o un tema que te interese.\n\n**¿Qué te gustaría conocer?**")
     for item in st.session_state.assistant_history:
         with st.chat_message(item["role"]):
             st.markdown(item["content"])
@@ -110,12 +110,12 @@ with st.sidebar:
             response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
         else:
             location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
-            response = f"Encontré estas opciones registradas{location_text}:\\n\\n"
+            response = f"Encontré estas opciones registradas{location_text}:\n\n"
             for _, item in found.head(8).iterrows():
-                response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\\n"
+                response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\n"
             if len(found) > 8:
-                response += f"\\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\\n"
-            response += "\\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
+                response += f"\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\n"
+            response += "\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
         st.session_state.assistant_history.append({"role": "assistant", "content": response})
         st.rerun()
     if st.button("🗑️ Borrar conversación", key="clear_sidebar_chat"):
