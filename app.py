@@ -256,12 +256,17 @@ with st.container(key="cifac_launcher"):
                     chosen_rows = local_rows[local_rows["_kind"].map(normalize) == normalized_message]
                 if chosen_rows.empty:
                     response = "No encontré esa categoría en esta localidad. Elegí una de las opciones disponibles."
+                    st.session_state.cifac_step = "tipo"
                 else:
-                    response = f"🎓 **{loc} — {message}**\\n\\n"
-                    for _, item in chosen_rows.sort_values(career).iterrows():
-                        response += f"- **{item[career]}** — {item['Institución']}\\n"
-                    response += "\\n*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*"
-                st.session_state.cifac_step = "continuar"
+                    chosen_rows = chosen_rows.drop_duplicates(subset=[career, "Institución"])
+                    lines = [f"🎓 **{loc} — {message}**", "",
+                             f"Encontré **{len(chosen_rows)} carreras registradas** en esta categoría:", ""]
+                    for index, (_, item) in enumerate(chosen_rows.sort_values(career).iterrows(), 1):
+                        lines.extend([f"**{index}. {item[career]}**",
+                                      f"🏫 {item['Institución']}", ""])
+                    lines.append("*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*")
+                    response = "\\n".join(lines)
+                    st.session_state.cifac_step = "continuar"
             else:
                 found, selected_localities = find_careers(message)
                 if st.session_state.cifac_step == "localidad" and not selected_localities:
