@@ -83,45 +83,52 @@ def find_careers(message):
     return found.drop_duplicates(subset=[career, town, "Institución"]), selected_localities
 
 
-with st.sidebar:
-    st.header("💬 Asistente de Mi Futuro Jujuy")
-    st.caption("Tu guía para explorar carreras y localidades de Jujuy.")
-    if "assistant_history" not in st.session_state:
-        st.session_state.assistant_history = []
-    with st.chat_message("assistant"):
-        st.markdown("👋 **¡Hola! Soy el asistente de Mi Futuro Jujuy.**\n\nTe ayudo a buscar qué carreras figuran en nuestra base y dónde podrías estudiarlas. Podés preguntarme por una localidad, una carrera o un tema que te interese.\n\n**¿Qué te gustaría conocer?**")
-    for item in st.session_state.assistant_history:
-        with st.chat_message(item["role"]):
-            st.markdown(item["content"])
-    st.caption("Preguntas para empezar:")
-    suggestions = ["¿Qué puedo estudiar en Yuto?", "Me interesa la programación", "¿Qué carreras hay en Fraile Pintado?"]
-    picked = None
-    for index, example in enumerate(suggestions):
-        if st.button(example, key=f"sidebar_example_{index}", use_container_width=True):
-            picked = example
-    with st.form("sidebar_chat_form", clear_on_submit=True):
-        question = st.text_input("Tu pregunta", placeholder="Escribí tu consulta...", label_visibility="visible")
-        submitted = st.form_submit_button("➤ Enviar", type="primary", use_container_width=True)
-    message = picked or (question.strip() if submitted else None)
-    if message:
-        st.session_state.assistant_history.append({"role": "user", "content": message})
-        found, selected_localities = find_careers(message)
-        if found.empty:
-            response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
-        else:
-            location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
-            response = f"Encontré estas opciones registradas{location_text}:\n\n"
-            for _, item in found.head(8).iterrows():
-                response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\n"
-            if len(found) > 8:
-                response += f"\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\n"
-            response += "\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
-        st.session_state.assistant_history.append({"role": "assistant", "content": response})
-        st.rerun()
-    if st.button("🗑️ Borrar conversación", key="clear_sidebar_chat"):
-        st.session_state.assistant_history = []
-        st.rerun()
-    st.caption("Buscador conversacional, no IA generativa ni orientación vocacional profesional.")
+st.markdown("""<style>
+[data-testid="stSidebar"] {display:none;}
+.st-key-cifac_launcher {position:fixed;bottom:20px;right:22px;z-index:999999;width:auto!important;}
+.st-key-cifac_launcher button[data-testid="stPopoverButton"] {background:#7138c8!important;color:white!important;border-radius:28px!important;border:2px solid white!important;box-shadow:0 5px 22px #0003!important;font-weight:700!important;padding:12px 22px!important;}
+@media(max-width:600px){.st-key-cifac_launcher{bottom:12px;right:12px;}}
+</style>""", unsafe_allow_html=True)
+with st.container(key="cifac_launcher"):
+    with st.popover("💬 CIFAC · ¿Te ayudo?", use_container_width=False):
+        st.subheader("🤖 CIFAC")
+        st.caption("Tu guía para explorar carreras y localidades de Jujuy.")
+        if "assistant_history" not in st.session_state:
+            st.session_state.assistant_history = []
+        with st.chat_message("assistant"):
+            st.markdown("👋 **¡Hola! Soy CIFAC, tu asistente de Mi Futuro Jujuy.**\n\nTe ayudo a buscar qué carreras figuran en nuestra base y dónde podrías estudiarlas. Podés preguntarme por una localidad, una carrera o un tema que te interese.\n\n**¿Qué te gustaría conocer?**")
+        for item in st.session_state.assistant_history:
+            with st.chat_message(item["role"]):
+                st.markdown(item["content"])
+        st.caption("Preguntas para empezar:")
+        suggestions = ["¿Qué puedo estudiar en Yuto?", "Me interesa la programación", "¿Qué carreras hay en Fraile Pintado?"]
+        picked = None
+        for index, example in enumerate(suggestions):
+            if st.button(example, key=f"cifac_example_{index}", use_container_width=True):
+                picked = example
+        with st.form("cifac_chat_form", clear_on_submit=True):
+            question = st.text_input("Tu pregunta", placeholder="Escribí tu consulta...", label_visibility="visible")
+            submitted = st.form_submit_button("➤ Enviar", type="primary", use_container_width=True)
+        message = picked or (question.strip() if submitted else None)
+        if message:
+            st.session_state.assistant_history.append({"role": "user", "content": message})
+            found, selected_localities = find_careers(message)
+            if found.empty:
+                response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
+            else:
+                location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
+                response = f"Encontré estas opciones registradas{location_text}:\n\n"
+                for _, item in found.head(8).iterrows():
+                    response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\n"
+                if len(found) > 8:
+                    response += f"\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\n"
+                response += "\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
+            st.session_state.assistant_history.append({"role": "assistant", "content": response})
+            st.rerun()
+        if st.button("🗑️ Borrar conversación", key="clear_cifac_chat"):
+            st.session_state.assistant_history = []
+            st.rerun()
+        st.caption("Buscador conversacional, no IA generativa ni orientación vocacional profesional.")
 
 tab_map,tab_search,tab_test=st.tabs(["🗺️ Mapa","🔎 Carreras","🧭 Intereses"])
 with tab_map:
