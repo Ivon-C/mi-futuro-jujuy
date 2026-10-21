@@ -138,10 +138,11 @@ for name, locality, kind, area, note, source in fca_offerings:
 # Producción Lechera: no se asigna una localidad sin sede confirmada;
 # además, la Facultad indica que no tiene inscripciones habilitadas.
 # Convocatorias de ingreso 2027 comunicadas por el usuario.
-# No se asigna localidad sin confirmar la sede en una fuente oficial.
+# Localidad de cursado indicada por la usuaria: San Salvador de Jujuy.
 admission_2027 = [
     {
         "Carrera": "Abogacía",
+        "Localidad": "San Salvador de Jujuy",
         "Preinscripción": "1 al 25 de octubre de 2026",
         "Curso": "Virtual por UNJu Virtual. Módulo I: Lectura y comprensión de textos en la práctica del derecho (2–6 nov); Módulo II: Introducción a las Ciencias Sociales (9–13 nov); Módulo III: Nociones básicas de derecho (16–20 nov).",
         "Examen": "23 al 26 de febrero de 2027",
@@ -149,6 +150,7 @@ admission_2027 = [
     },
     {
         "Carrera": "Enfermería Universitaria",
+        "Localidad": "San Salvador de Jujuy",
         "Preinscripción": "1 al 25 de octubre de 2026",
         "Curso": "Módulo I: Lectura y comprensión de textos (2–6 nov); Módulo II: Química y Física (9–13 nov); Módulo III: Introducción a la Enfermería (16–20 nov); Módulo IV: Morfofisiología (23–27 nov).",
         "Examen": "18, 19 y 22 de febrero de 2027",
@@ -168,9 +170,10 @@ df["Localidad"] = df["Localidad"].replace({
 })
 town = "Localidad"
 st.markdown("### 📅 Ingreso 2027: fechas de preinscripción")
-st.caption("Cronogramas informados para Abogacía y Enfermería Universitaria. Confirmá requisitos, enlaces de inscripción y sede con la institución.")
+st.caption("Cronogramas informados para Abogacía y Enfermería Universitaria en San Salvador de Jujuy. Confirmá requisitos y enlaces de inscripción con la institución.")
 for admission in admission_2027:
     with st.expander("🎓 " + admission["Carrera"] + " — preinscripción hasta el 25/10/2026"):
+        st.write("**Localidad:** " + admission["Localidad"])
         st.write("**Preinscripción:** " + admission["Preinscripción"])
         st.write("**Curso de ingreso:** " + admission["Curso"])
         st.write("**Examen:** " + admission["Examen"])
