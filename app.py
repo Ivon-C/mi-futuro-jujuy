@@ -248,6 +248,21 @@ df["Localidad"] = df["Localidad"].replace({
     "LIBERTADOR GENERAL SAN MARTÍN": "Libertador General San Martín",
     "Libertador Gral. San Martín": "Libertador General San Martín"
 })
+# Unificar el registro general del primer año de Ingeniería en Libertador.
+# Las cuatro ingenierías ya figuran por separado con su título específico.
+umbrella = df["Carrera / título"].astype(str).str.contains(
+    "Cursado de Primer Año de las carreras de Ingeniería de Minas, Química, Informática e Industrial",
+    case=False, regex=False
+)
+df = df.loc[~umbrella].copy()
+# Evitar repeticiones de la misma carrera, institución y localidad.
+df["_clave_carrera"] = df["Carrera / título"].astype(str).str.strip().str.casefold()
+df["_clave_localidad"] = df["Localidad"].astype(str).str.strip().str.casefold()
+df["_clave_institucion"] = df["Institución"].astype(str).str.casefold().str.replace(
+    r"\\s*\\(extensión áulica\\)", "", regex=True
+).str.strip()
+df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
+df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
 town = "Localidad"
 career = "Carrera / título"
 towns = sorted(df[town].astype(str).unique())
@@ -318,7 +333,7 @@ def career_kind(row):
         return "Ingenierías"
     if "tecnic" in title or "tecnic" in formation:
         return "Tecnicaturas"
-    if "licenciat" in title:
+    if "licenciat" in title or "licenciat" in formation:
         return "Licenciaturas"
     return "Otras formaciones"
 
@@ -656,13 +671,26 @@ with tab_map:
     else:
         st.markdown("### 🎓 Carreras por localidad")
         st.caption("Oferta histórica preliminar: confirmar vigencia, gratuidad y sede con cada institución.")
+        kind_order = ["Profesorados", "Tecnicaturas", "Ingenierías", "Licenciaturas", "Otras formaciones"]
         for locality, locality_group in filtered.groupby(town, sort=True):
             st.markdown(f"#### 📍 {locality}")
-            for _, item in locality_group.sort_values(career).iterrows():
-                with st.container(border=True):
-                    st.markdown(f"**🎓 {item[career]}**")
-                    st.caption(f"🏫 {item['Institución']}")
-                    st.caption(f"{item['Tipo de formación']} · {item['Área principal preliminar']}")
+            locality_group = locality_group.copy()
+            locality_group["_tipo_grupo"] = locality_group.apply(career_kind, axis=1)
+            for kind in kind_order:
+                grouped = locality_group[locality_group["_tipo_grupo"] == kind]
+                if grouped.empty:
+                    continue
+                st.markdown(f"**{kind} ({len(grouped)})**")
+                for _, item in grouped.sort_values(career).iterrows():
+                    with st.container(border=True):
+                        st.markdown(f"**🎓 {item[career]}**")
+                        st.caption(f"📚 Tipo de formación: {kind[:-1] if kind != 'Otras formaciones' else 'Otra formación'}")
+                        st.caption(f"🏫 {item['Institución']}")
+                        if str(item.get("Facultad", "")).strip():
+                            st.caption(f"🏛️ {item['Facultad']}")
+                        if str(item.get("Lugar donde se dicta", "")).strip():
+                            st.caption(f"📍 {item['Lugar donde se dicta']}")
+                        st.caption(f"Área: {item['Área principal preliminar']}")
         with st.expander("Ver tabla completa de registros"):
             results(filtered)
 with tab_search:
