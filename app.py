@@ -162,13 +162,20 @@ with tab_map:
     else:
         st.markdown("### 🏫 Instituciones y carreras")
         st.caption("Oferta histórica preliminar: confirmar vigencia, gratuidad y sede con cada institución.")
-        for institution, group in filtered.groupby("Institución", sort=True):
-            with st.expander(f"🏫 {institution} · {len(group)} carreras", expanded=len(filtered) <= 20):
-                places = ", ".join(sorted(group[town].astype(str).unique()))
-                st.caption(f"📍 {places}")
-                for _, item in group.iterrows():
-                    st.markdown(f"**🎓 {item[career]}**")
-                    st.caption(f"{item['Tipo de formación']} · {item['Área principal preliminar']}")
+        for locality, locality_group in filtered.groupby(town, sort=True):
+            st.markdown(f"#### 📍 {locality}")
+            st.caption(f"{len(locality_group)} registros históricos en esta localidad.")
+            for institution, group in locality_group.groupby("Institución", sort=True):
+                with st.expander(
+                    f"🏫 {institution} · {len(group)} carreras",
+                    expanded=len(filtered) <= 12
+                ):
+                    st.caption(f"Sede o localidad registrada: {locality}")
+                    for _, item in group.iterrows():
+                        st.markdown(f"**🎓 {item[career]}**")
+                        st.caption(
+                            f"{item['Tipo de formación']} · {item['Área principal preliminar']}"
+                        )
         with st.expander("Ver tabla completa de registros"):
             results(filtered)
 with tab_search:
