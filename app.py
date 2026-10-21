@@ -9,7 +9,7 @@ st.set_page_config(page_title="Mi Futuro Jujuy", page_icon="🎓", layout="wide"
 st.markdown("""<style>div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"] {background:#7138c8;color:white;border:0;font-weight:700;} div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"]:hover {background:#5925a7;color:white;}</style>""", unsafe_allow_html=True)
 st.title("🎓 Mi Futuro Jujuy")
 st.write("Explorá tus intereses y descubrí dónde estudiar en Jujuy.")
-st.warning("Prototipo: el catálogo contiene oferta académica histórica y publicada, NO inscripciones abiertas confirmadas para 2027. Verificá convocatorias, requisitos y sedes antes de decidir.")
+st.info("🎓 **¡Tu futuro comienza acá!** Explorá carreras, instituciones y localidades de Jujuy y descubrí opciones relacionadas con tus intereses.")
 FILE = Path(__file__).with_name("carreras.xlsx")
 if not FILE.exists():
     st.error("Falta cargar el archivo carreras.xlsx en el repositorio. Descargá la base preliminar y subila con Add file > Upload files.")
@@ -694,7 +694,7 @@ with tab_map:
         st.info("Todavía no hay ofertas cargadas para esta selección en la base preliminar.")
     else:
         st.markdown("### 🎓 Carreras por localidad")
-        st.caption("Oferta histórica preliminar: confirmar vigencia, gratuidad y sede con cada institución.")
+        st.caption("Las inscripciones, los requisitos y las sedes pueden variar. Consultá la información oficial de cada institución.")
         kind_order = ["Profesorados", "Tecnicaturas", "Ingenierías", "Licenciaturas", "Otras formaciones"]
         for locality, locality_group in filtered.groupby(town, sort=True):
             st.markdown(f"#### 📍 {locality}")
