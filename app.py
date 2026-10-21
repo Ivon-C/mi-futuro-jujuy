@@ -593,6 +593,47 @@ with tab_map:
         "YAVI": ["La Quiaca"],
     }
     dept_names = sorted(dept_towns)
+    @st.cache_data(ttl=86400, show_spinner=False)
+    def load_official_jujuy_boundaries():
+        """Usa geometrías departamentales de Georef; nunca altera límites a mano."""
+        from urllib.request import Request, urlopen
+        from urllib.parse import urlencode
+        import unicodedata
+
+        params = urlencode({
+            "provincia": "jujuy", "max": 16,
+            "formato": "geojson", "campos": "nombre,geometria"
+        })
+        url = "https://apis.datos.gob.ar/georef/api/v2.0/departamentos?" + params
+        req = Request(url, headers={"User-Agent": "MiFuturoJujuy/1.0"})
+        with urlopen(req, timeout=12) as response:
+            data = json.load(response)
+        if data.get("type") != "FeatureCollection":
+            raise ValueError("Georef no devolvió una colección GeoJSON")
+        colors = {
+            "YAVI": "#F4A261", "RINCONADA": "#7BC8A4",
+            "COCHINOCA": "#B7A4EA", "SANTA CATALINA": "#F7D774"
+        }
+        def key(value):
+            value = unicodedata.normalize("NFKD", str(value).upper())
+            return "".join(ch for ch in value if not unicodedata.combining(ch))
+        expected = set(dept_towns)
+        for feature in data["features"]:
+            props = feature.get("properties") or {}
+            name = key(props.get("nombre", props.get("departamento", "")))
+            if name == "DR MANUEL BELGRANO":
+                name = "DOCTOR MANUEL BELGRANO"
+            if name not in expected:
+                raise ValueError("Departamento no reconocido: " + name)
+            props["departamento"] = name
+            props["color"] = colors.get(name, "#A9D8E6")
+            feature["properties"] = props
+            if feature.get("geometry", {}).get("type") not in ("Polygon", "MultiPolygon"):
+                raise ValueError("Geometría no válida para " + name)
+        if len(data["features"]) != 16 or {f["properties"]["departamento"] for f in data["features"]} != expected:
+            raise ValueError("La respuesta oficial no incluye los 16 departamentos")
+        return data
+
     geo_path = Path(__file__).with_name("departamentos_jujuy.geojson")
     if "dept_choice" not in st.session_state:
         st.session_state.dept_choice = "Todos"
@@ -601,8 +642,12 @@ with tab_map:
 
     selected_department = st.session_state.dept_choice
     if geo_path.exists():
-        with open(geo_path, encoding="utf-8") as geo_file:
-            boundaries = json.load(geo_file)
+        try:
+            boundaries = load_official_jujuy_boundaries()
+        except Exception:
+            with open(geo_path, encoding="utf-8") as geo_file:
+                boundaries = json.load(geo_file)
+            st.caption("Mapa de respaldo: no fue posible consultar los límites oficiales actualizados.")
         m = folium.Map(
             location=[-23.25, -65.7], zoom_start=8, tiles=None,
             zoom_control=False, scrollWheelZoom=False,
@@ -640,7 +685,11 @@ with tab_map:
         }
         for feature in boundaries["features"]:
             name = feature["properties"]["departamento"]
-            ring = feature["geometry"]["coordinates"][0]
+            geometry = feature["geometry"]
+            if geometry["type"] == "MultiPolygon":
+                ring = max((polygon[0] for polygon in geometry["coordinates"]), key=len)
+            else:
+                ring = geometry["coordinates"][0]
             lons = [p[0] for p in ring]
             lats = [p[1] for p in ring]
             lat, lon = (min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2
