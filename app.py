@@ -472,7 +472,7 @@ with st.container(key="cifac_launcher"):
             suggestions = ["No sé qué estudiar, ¿me ayudás?", "Quiero buscar carreras por localidad", "Me interesa la tecnología, ¿qué opciones tengo?"]
         elif step == "orientacion":
             st.caption("¿Cómo querés continuar?")
-            suggestions = ["Quiero descubrir mis intereses", "Prefiero contarte qué actividades me gustan"]
+            suggestions = ["Hacer el test de intereses", "Explorar carreras en el mapa"]
         elif step == "localidad":
             st.caption("¿En qué localidad querés estudiar?")
             suggestions = []
@@ -485,12 +485,9 @@ with st.container(key="cifac_launcher"):
             available = df[df[town] == loc].apply(career_kind, axis=1).unique().tolist()
             st.caption("¿Qué tipo de formación querés explorar?")
             suggestions = ["Ver todas las carreras"] + sorted(available)
-        elif step == "actividades":
-            st.caption("Contame qué actividades te gustan en el cuadro de abajo.")
-            suggestions = []
         else:
             st.caption("Podés seguir preguntando o iniciar otra búsqueda:")
-            suggestions = ["Buscar carreras por localidad", "Explorar mis intereses"]
+            suggestions = ["Buscar carreras por localidad", "Hacer el test de intereses", "Explorar carreras en el mapa"]
         picked = chosen if step == "localidad" and st.session_state.get("cifac_town_go") else None
         for index, example in enumerate(suggestions):
             if st.button(example, key=f"cifac_option_{step}_{index}", use_container_width=True):
@@ -504,16 +501,16 @@ with st.container(key="cifac_launcher"):
             normalized_message = normalize(message)
             wants_guidance = any(term in normalized_message for term in ["no se que estudiar", "no se que elegir", "no se que carrera", "estoy indeciso", "estoy indecisa", "explorar mis intereses"])
             wants_locality = "buscar carreras por localidad" in normalized_message
-            wants_test = "descubrir mis intereses" in normalized_message
-            wants_activities = "contarte que actividades" in normalized_message
+            wants_test = any(term in normalized_message for term in ["descubrir mis intereses", "hacer el test de intereses", "explorar mis intereses"])
+            wants_map = "explorar carreras en el mapa" in normalized_message
             if wants_test:
                 response = "🧭 ¡Excelente! Abrí la pestaña **Intereses** de esta página y respondé el cuestionario. Al finalizar verás tus tres áreas destacadas. Después podés volver a CIFAC y contarme qué área te interesó."
                 st.session_state.cifac_step = "continuar"
-            elif wants_activities:
-                response = "💜 ¡Te escucho! Escribime qué te gusta hacer, aprender o investigar. Voy a buscar carreras relacionadas en nuestra base preliminar."
-                st.session_state.cifac_step = "actividades"
+            elif wants_map:
+                response = "🗺️ Abrí la pestaña **Mapa** de esta página, elegí un departamento y explorá las carreras por localidad y tipo de formación. También puedo buscar una carrera o localidad concreta."
+                st.session_state.cifac_step = "continuar"
             elif wants_guidance:
-                response = "¡Claro! 💜 No necesitás decidir ahora. Podemos empezar con el **test de intereses** o con las actividades que disfrutás. ¿Qué preferís?"
+                response = "💜 No necesitás decidir ahora. Podés hacer el **test de intereses** para explorar áreas que te llaman la atención, o abrir el **Mapa** para conocer carreras por localidad. ¿Por dónde preferís empezar?"
                 st.session_state.cifac_step = "orientacion"
             elif wants_locality:
                 response = "📍 ¡Vamos a buscar! ¿En qué localidad de Jujuy te gustaría estudiar? Elegí una opción o escribí otra localidad."
@@ -540,6 +537,9 @@ with st.container(key="cifac_launcher"):
                     lines.append("*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*")
                     response = "\n".join(lines)
                     st.session_state.cifac_step = "continuar"
+            elif any(term in normalized_message for term in ["me gusta", "me gustan", "disfruto", "prefiero hacer", "no me gusta"]) and not match_localities(message):
+                response = "💜 Gracias por contarme tus intereses. Para no sugerirte carreras solo por unas pocas palabras, te recomiendo abrir **Intereses** y hacer el test, o explorar las opciones en **Mapa**. También puedo buscar una carrera o localidad concreta."
+                st.session_state.cifac_step = "continuar"
             else:
                 found, selected_localities = find_careers(message)
                 if st.session_state.cifac_step == "localidad" and not selected_localities:
