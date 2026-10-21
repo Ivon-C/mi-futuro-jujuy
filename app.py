@@ -85,6 +85,21 @@ st.markdown("""<style>
     position:fixed; bottom:88px; right:26px; z-index:999999;
     width:auto!important;
 }
+/* CIFAC asoma por encima del botón de ayuda */
+.st-key-cifac_launcher::before {
+    content:"";
+    position:absolute;
+    width:88px;
+    height:88px;
+    right:38px;
+    bottom:calc(100% - 5px);
+    background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20160%20160%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%237541d6%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2326c6da%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2280%22%20r%3D%2276%22%20fill%3D%22%23efe8ff%22%2F%3E%3Cpath%20d%3D%22M80%2025V16%22%20stroke%3D%22%23673ab7%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2213%22%20r%3D%228%22%20fill%3D%22%237c4ddb%22%2F%3E%3Crect%20x%3D%2220%22%20y%3D%2237%22%20width%3D%22120%22%20height%3D%2294%22%20rx%3D%2232%22%20fill%3D%22url(%23g)%22%2F%3E%3Crect%20x%3D%2229%22%20y%3D%2245%22%20width%3D%22102%22%20height%3D%2278%22%20rx%3D%2225%22%20fill%3D%22%23151d3d%22%2F%3E%3Cpath%20d%3D%22M47%2079q12-19%2024%200M89%2079q12-19%2024%200%22%20fill%3D%22none%22%20stroke%3D%22%2364edff%22%20stroke-width%3D%227%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M68%2096q12%2012%2024%200%22%20fill%3D%22none%22%20stroke%3D%22%2364edff%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2226%22%20cy%3D%2287%22%20r%3D%2211%22%20fill%3D%22%237047cf%22%2F%3E%3Ccircle%20cx%3D%22134%22%20cy%3D%2287%22%20r%3D%2211%22%20fill%3D%22%237047cf%22%2F%3E%3Cpath%20d%3D%22M48%20128q32%2021%2064%200%22%20fill%3D%22none%22%20stroke%3D%22%237541d6%22%20stroke-width%3D%228%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E');
+    background-size:contain;
+    background-position:center bottom;
+    background-repeat:no-repeat;
+    pointer-events:none;
+    filter:drop-shadow(0 5px 7px #34265a55);
+}
 .st-key-cifac_launcher button[data-testid="stPopoverButton"] {
     background:linear-gradient(120deg,#6631b9,#8751d7)!important;
     color:white!important;border-radius:32px!important;
@@ -98,6 +113,7 @@ st.markdown("""<style>
 }
 @media(max-width:600px){
     .st-key-cifac_launcher{bottom:85px;right:14px;}
+    .st-key-cifac_launcher::before{width:70px;height:70px;right:28px;}
     .st-key-cifac_launcher button[data-testid="stPopoverButton"]{padding:12px 16px!important;font-size:14px!important;}
     [data-testid="stPopoverBody"]{max-height:72vh!important;}
 }
