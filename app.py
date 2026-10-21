@@ -9,7 +9,7 @@ st.set_page_config(page_title="Mi Futuro Jujuy", page_icon="🎓", layout="wide"
 st.markdown("""<style>div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"] {background:#7138c8;color:white;border:0;font-weight:700;} div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"]:hover {background:#5925a7;color:white;}</style>""", unsafe_allow_html=True)
 st.title("🎓 Mi Futuro Jujuy")
 st.write("Explorá tus intereses y descubrí dónde estudiar en Jujuy.")
-st.warning("Prototipo: datos históricos sin verificar para 2026/2027. Confirmar carreras, sedes y gratuidad en las instituciones.")
+st.warning("Prototipo: el catálogo contiene oferta académica histórica y publicada, NO inscripciones abiertas confirmadas para 2027. Verificá convocatorias, requisitos y sedes antes de decidir.")
 FILE = Path(__file__).with_name("carreras.xlsx")
 if not FILE.exists():
     st.error("Falta cargar el archivo carreras.xlsx en el repositorio. Descargá la base preliminar y subila con Add file > Upload files.")
@@ -18,6 +18,8 @@ if not FILE.exists():
 def load_data():
     return pd.read_excel(FILE, sheet_name="Carreras").fillna("")
 df = load_data()
+# El archivo histórico no acredita inscripciones abiertas. Excluir entradas con cierre explícito.
+df = df[~df.astype(str).apply(lambda col: col.str.contains("inscripciones no habilitadas|inscripciones cerradas|no admite ingresantes", case=False, regex=True)).any(axis=1)].copy()
 # Fuente: Facultad de Ingeniería UNJu. En Libertador se cursa solo primer año.
 engineering_note = ("SOLO PRIMER AÑO en Libertador. Extensión Áulica FI-UNJu, "
                     "Escuela Técnica Ing. Herminio Arrieta, Mariano Moreno 1368. "
@@ -120,6 +122,9 @@ fca_offerings = [
     ("Tecnicatura Universitaria Forestal", "San Pedro", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre)
 ]
 for name, locality, kind, area, note, source in fca_offerings:
+    # Cohortes especiales previas no equivalen a una convocatoria abierta.
+    if "Cohorte 2024" in note or "Cohorte 2026" in note:
+        continue
     exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
               (df["Localidad"].astype(str).str.casefold() == locality.casefold()) &
               (df["Institución"].astype(str).str.casefold().str.contains("agrarias|fca", regex=True))).any()
