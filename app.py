@@ -604,10 +604,25 @@ with tab_map:
             "provincia": "jujuy", "max": 16,
             "formato": "geojson", "campos": "nombre,geometria"
         })
-        url = "https://apis.datos.gob.ar/georef/api/v2.0/departamentos?" + params
-        req = Request(url, headers={"User-Agent": "MiFuturoJujuy/1.0"})
-        with urlopen(req, timeout=12) as response:
-            data = json.load(response)
+        # Compatibilidad con las dos rutas publicadas del servicio Georef.
+        urls = [
+            "https://apis.datos.gob.ar/georef/api/v2.0/departamentos?" + params,
+            "https://apis.datos.gob.ar/georef/api/departamentos?" + params,
+        ]
+        data = None
+        last_error = None
+        for url in urls:
+            try:
+                req = Request(url, headers={"User-Agent": "Mozilla/5.0 MiFuturoJujuy/1.0"})
+                with urlopen(req, timeout=8) as response:
+                    candidate = json.load(response)
+                if candidate.get("type") == "FeatureCollection":
+                    data = candidate
+                    break
+            except Exception as exc:
+                last_error = exc
+        if data is None:
+            raise RuntimeError("No se pudo descargar el GeoJSON oficial") from last_error
         if data.get("type") != "FeatureCollection":
             raise ValueError("Georef no devolvió una colección GeoJSON")
         colors = {
