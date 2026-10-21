@@ -145,7 +145,8 @@ with st.container(key="cifac_launcher"):
             suggestions = ["Quiero descubrir mis intereses", "Prefiero contarte qué actividades me gustan"]
         elif step == "localidad":
             st.caption("¿En qué localidad querés estudiar?")
-            suggestions = ["Yuto", "Fraile Pintado", "San Pedro", "San Salvador de Jujuy"]
+            suggestions = towns[:8]
+            st.caption("También podés escribir cualquier otra localidad de la provincia.")
         elif step == "actividades":
             st.caption("Contame qué actividades te gustan en el cuadro de abajo.")
             suggestions = []
@@ -181,16 +182,18 @@ with st.container(key="cifac_launcher"):
                 st.session_state.cifac_step = "localidad"
             else:
                 found, selected_localities = find_careers(message)
-                if found.empty:
+                if st.session_state.cifac_step == "localidad" and not selected_localities:
+                    response = "No encontré esa localidad en nuestra base histórica. Escribí otra localidad de Jujuy."
+                elif found.empty:
                     response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
                 else:
                     location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
-                    response = f"Encontré estas opciones registradas{location_text}:\\n\\n"
+                    response = f"Encontré estas opciones registradas{location_text}:\n\n"
                     for _, item in found.head(8).iterrows():
-                        response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\\n"
+                        response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\n"
                     if len(found) > 8:
-                        response += f"\\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\\n"
-                    response += "\\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
+                        response += f"\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\n"
+                    response += "\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
                 st.session_state.cifac_step = "continuar"
             st.session_state.assistant_history.append({"role": "assistant", "content": response})
             st.rerun()
