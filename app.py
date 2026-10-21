@@ -348,6 +348,16 @@ dept_towns = {
     "YAVI": ["La Quiaca"],
 }
 
+def visible_value(value):
+    """Oculta valores ausentes y marcadores importados desde Excel."""
+    if pd.isna(value):
+        return ""
+    text = str(value).strip()
+    if normalize(text) in {"", "nan", "none", "null", "nat", "n/a", "na", "sin dato", "no disponible", "por confirmar"}:
+        return ""
+    return text
+
+
 def career_kind(row):
     title = normalize(row["Carrera / título"])
     formation = normalize(row["Tipo de formación"])
@@ -773,15 +783,20 @@ with tab_map:
                     with st.container(border=True):
                         st.markdown(f"**🎓 {item[career]}**")
                         st.caption(f"📚 Tipo de formación: {kind[:-1] if kind != 'Otras formaciones' else 'Otra formación'}")
-                        st.caption(f"🏫 {item['Institución']}")
-                        if str(item.get("Facultad", "")).strip():
-                            st.caption(f"🏛️ {item['Facultad']}")
-                        sede = str(item.get("Sede de cursado confirmada", "")).strip()
+                        institucion = visible_value(item.get("Institución", ""))
+                        if institucion:
+                            st.caption(f"🏫 {institucion}")
+                        facultad = visible_value(item.get("Facultad", ""))
+                        if facultad:
+                            st.caption(f"🏛️ {facultad}")
+                        sede = visible_value(item.get("Sede de cursado confirmada", ""))
                         if not sede:
-                            sede = str(item.get("Lugar donde se dicta", "")).strip()
-                        if sede and "dirección a confirmar" not in sede and "dirección sin confirmar" not in sede:
+                            sede = visible_value(item.get("Lugar donde se dicta", ""))
+                        if sede and "dirección a confirmar" not in normalize(sede) and "dirección sin confirmar" not in normalize(sede):
                             st.caption(f"📍 Sede: {sede}")
-                        st.caption(f"Área: {item['Área principal preliminar']}")
+                        area = visible_value(item.get("Área principal preliminar", ""))
+                        if area:
+                            st.caption(f"Área: {area}")
         with st.expander("Ver tabla completa de registros"):
             results(filtered)
 with tab_search:
