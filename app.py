@@ -44,8 +44,19 @@ with tab_map:
     for loc, count in df[town].value_counts().items():
         if loc in coords:
             folium.CircleMarker(coords[loc],radius=7,tooltip=f"{loc}: {count} registros",popup=loc,color="#087f8c",fill=True).add_to(m)
-    st_folium(m,height=390,returned_objects=[])
-    results(df if chosen=="Todas" else df[df[town]==chosen])
+    map_event = st_folium(
+        m, height=520, use_container_width=True,
+        returned_objects=["last_object_clicked_tooltip"], key="jujuy_map"
+    )
+    clicked = (map_event or {}).get("last_object_clicked_tooltip")
+    clicked_town = next((loc for loc in towns if clicked and clicked.startswith(loc + ": ")), None)
+    active_town = chosen if chosen != "Todas" else clicked_town
+    if active_town:
+        st.success(f"📍 {active_town}: {len(df[df[town] == active_town])} carreras registradas en la base preliminar.")
+        st.caption("Para volver a ver todas las localidades, elegí otra localidad en el selector o hacé clic en otro marcador.")
+    else:
+        st.info("Hacé clic en uno de los círculos del mapa para ver las carreras de esa localidad.")
+    results(df if not active_town else df[df[town] == active_town])
 with tab_search:
     q=st.text_input("Buscá una carrera o palabra clave")
     loc=st.selectbox("Filtrar localidad",["Todas"]+towns,key="searchloc")
