@@ -244,9 +244,9 @@ with tab_test:
                     if scores[area] != last_score:
                         position = index + 1
                     last_score = scores[area]
-                    medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(position, "🔹")
+                    place_label = f"{position}° lugar"
                     with st.container(border=True):
-                        st.markdown(f"**{medal} Puesto {position}: {area}**")
+                        st.markdown(f"**{place_label} — {area}**")
                         st.write(descriptions[area])
                 st.caption("Las áreas con el mismo promedio comparten posición. Se consideran únicamente las respuestas con interés definido. Este ranking no mide capacidades ni determina qué carrera elegir.")
                 st.markdown("### Carreras para seguir explorando")
