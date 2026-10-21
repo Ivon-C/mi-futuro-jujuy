@@ -580,6 +580,47 @@ with st.container(key="cifac_launcher"):
             st.rerun()
         st.caption("Buscador conversacional, no IA generativa ni orientación vocacional profesional.")
 
+# Pestañas diferenciadas por color: mapa, carreras e intereses.
+st.markdown("""
+<style>
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    border-radius: 12px 12px 0 0 !important;
+    margin-right: 6px !important;
+    font-weight: 700 !important;
+    padding: 10px 17px !important;
+    border-bottom: 3px solid transparent !important;
+    transition: background-color .15s ease, color .15s ease;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"]:nth-child(1) {
+    background: #E5F4ED !important; color: #237A56 !important;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"]:nth-child(2) {
+    background: #E8EEFF !important; color: #3457B1 !important;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"]:nth-child(3) {
+    background: #F2E7FF !important; color: #7941B3 !important;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"]:nth-child(1)[aria-selected="true"] {
+    background: #237A56 !important; color: white !important; border-bottom-color: #17543C !important;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"]:nth-child(2)[aria-selected="true"] {
+    background: #3457B1 !important; color: white !important; border-bottom-color: #243F83 !important;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"]:nth-child(3)[aria-selected="true"] {
+    background: #7941B3 !important; color: white !important; border-bottom-color: #562B84 !important;
+}
+div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+    background: transparent !important;
+}
+@media (max-width: 600px) {
+    div[data-testid="stTabs"] button[data-baseweb="tab"] {
+        padding: 9px 11px !important; margin-right: 3px !important;
+        font-size: 13px !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 tab_map,tab_search,tab_test=st.tabs(["🗺️ Mapa","🔎 Carreras","🧭 Intereses"])
 with tab_map:
     st.subheader("Explorá Jujuy por departamento")
