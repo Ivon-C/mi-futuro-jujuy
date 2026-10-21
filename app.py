@@ -199,8 +199,47 @@ admission_2027 = [
         "Cupo": "140 estudiantes. Inicio de cursado: marzo de 2027."
     }
 ]
+# Escuela Superior de Ciencias Jurídicas y Políticas, UNJu.
+juridicas = [
+    ("Abogacía", "Abogado/a", "5 años", "https://escuelajuridica.unju.edu.ar/abogacia/"),
+    ("Licenciatura en Ciencia Política", "Licenciado/a en Ciencia Política", "4 años", "https://escuelajuridica.unju.edu.ar/licenciatura-en-ciencia-politica/")
+]
+for name, title, duration, url in juridicas:
+    locality = "San Salvador de Jujuy"
+    note = ("Título: " + title + ". Duración: " + duration +
+            ". Escuela Superior de Ciencias Jurídicas y Políticas, UNJu. "
+            "Rectorado UNJu, Av. Bolivia 1239, San Salvador de Jujuy. "
+            "Fuente: " + url)
+    if name == "Abogacía":
+        note += " Ingreso 2027: preinscripción 1 al 25 de octubre de 2026; examen 23 al 26 de febrero de 2027."
+    exists = ((df["Carrera / título"].astype(str).str.strip().str.casefold() == name.casefold()) &
+              (df["Localidad"].astype(str).str.strip().str.casefold() == locality.casefold())).any()
+    pending = any(row["Carrera / título"].casefold() == name.casefold()
+                  and row["Localidad"].casefold() == locality.casefold() for row in new_rows)
+    if not exists and not pending:
+        new_rows.append({
+            "Institución": "Universidad Nacional de Jujuy (UNJu)",
+            "Facultad": "Escuela Superior de Ciencias Jurídicas y Políticas",
+            "Lugar donde se dicta": "Rectorado UNJu - Av. Bolivia 1239",
+            "Localidad": locality,
+            "Carrera / título": name,
+            "Tipo de formación": "Licenciatura" if name.startswith("Licenciatura") else "Carrera universitaria de grado",
+            "Área principal preliminar": "Ciencias sociales y comunicación",
+            "Observación": note
+        })
 if new_rows:
     df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
+# Completar la unidad académica y dirección también para carreras preexistentes.
+for name, title, duration, url in juridicas:
+    match = ((df["Carrera / título"].astype(str).str.strip().str.casefold() == name.casefold()) &
+             (df["Localidad"].astype(str).str.strip().str.casefold() == "san salvador de jujuy"))
+    if match.any():
+        df.loc[match, "Institución"] = "Universidad Nacional de Jujuy (UNJu)"
+        df.loc[match, "Facultad"] = "Escuela Superior de Ciencias Jurídicas y Políticas"
+        df.loc[match, "Lugar donde se dicta"] = "Rectorado UNJu - Av. Bolivia 1239"
+        df.loc[match, "Observación"] = ("Título: " + title + ". Duración: " + duration +
+            ". Rectorado UNJu, Av. Bolivia 1239. Fuente: " + url +
+            (" Ingreso 2027: preinscripción del 1 al 25 de octubre de 2026." if name == "Abogacía" else ""))
 # Unificamos la escritura de localidades, incluso si el Excel trae mayúsculas.
 df["Localidad"] = df["Localidad"].astype(str).str.strip()
 df["Localidad"] = df["Localidad"].replace({
