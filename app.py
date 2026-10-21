@@ -249,22 +249,6 @@ df["Localidad"] = df["Localidad"].replace({
     "Libertador Gral. San Martín": "Libertador General San Martín"
 })
 town = "Localidad"
-st.markdown("### 📚 Ingreso 2027 — Facultad de Ciencias Económicas (UNJu)")
-st.write("**Localidad de cursado: San Salvador de Jujuy.** Carreras anunciadas: **Contador Público**, **Licenciatura en Administración** y **Licenciatura en Economía Política**.")
-st.info("La Facultad publicó información de ingreso 2027. Consultá allí fechas, requisitos y cursillos; no hay fechas verificadas en este catálogo.")
-st.link_button("Consultar Ingreso 2027 — FCE UNJu", fce_ingreso_url)
-st.markdown("### 📅 Ingreso 2027: fechas de preinscripción")
-st.caption("Cronogramas informados para Abogacía y Enfermería Universitaria en San Salvador de Jujuy. Confirmá requisitos y enlaces de inscripción con la institución.")
-for admission in admission_2027:
-    with st.expander("🎓 " + admission["Carrera"] + " — preinscripción hasta el 25/10/2026"):
-        st.write("**Localidad:** " + admission["Localidad"])
-        st.write("**Preinscripción:** " + admission["Preinscripción"])
-        st.write("**Curso de ingreso:** " + admission["Curso"])
-        st.write("**Examen:** " + admission["Examen"])
-        st.write("**Resultados:** " + admission["Resultados"])
-        if "Cupo" in admission:
-            st.write("**Cupo e inicio:** " + admission["Cupo"])
-
 career = "Carrera / título"
 towns = sorted(df[town].astype(str).unique())
 coords = {
