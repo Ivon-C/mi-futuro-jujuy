@@ -263,6 +263,29 @@ df["_clave_institucion"] = df["Institución"].astype(str).str.casefold().str.rep
 ).str.strip()
 df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
 df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
+# Sedes de cursado del IES N.º 10 informadas por la docente.
+# No mostrar datos de sede cuando no están confirmados.
+def sede_ies10(row):
+    institucion = normalize(row.get("Institución", ""))
+    if not ("ies 10" in institucion or "instituto de educacion superior n° 10" in institucion or
+            "instituto de educacion superior n.º 10" in institucion or
+            "instituto de educacion superior n°10" in institucion or
+            "instituto de educacion superior nº 10" in institucion):
+        return ""
+    localidad = normalize(row.get("Localidad", ""))
+    titulo = normalize(row.get("Carrera / título", ""))
+    if localidad == "fraile pintado":
+        return "Escuela N.º 123 Manuel Belgrano"
+    if localidad == "yuto":
+        return "Fundación Te Ayudamos Hermanos"
+    if localidad == "libertador general san martin":
+        if ("matematica" in titulo and "profesor" in titulo) or ("administracion" in titulo and "profesor" in titulo):
+            return "Escuela Comercial N.º 4 25 de Febrero"
+        if any(p in titulo for p in ("quimica", "ingles", "educacion primaria", "educacion especial", "ciencias de la educacion")):
+            return "Escuela Normal"
+    return ""
+
+df["Sede de cursado confirmada"] = df.apply(sede_ies10, axis=1)
 town = "Localidad"
 career = "Carrera / título"
 towns = sorted(df[town].astype(str).unique())
@@ -688,8 +711,11 @@ with tab_map:
                         st.caption(f"🏫 {item['Institución']}")
                         if str(item.get("Facultad", "")).strip():
                             st.caption(f"🏛️ {item['Facultad']}")
-                        if str(item.get("Lugar donde se dicta", "")).strip():
-                            st.caption(f"📍 {item['Lugar donde se dicta']}")
+                        sede = str(item.get("Sede de cursado confirmada", "")).strip()
+                        if not sede:
+                            sede = str(item.get("Lugar donde se dicta", "")).strip()
+                        if sede and "dirección a confirmar" not in sede and "dirección sin confirmar" not in sede:
+                            st.caption(f"📍 Sede: {sede}")
                         st.caption(f"Área: {item['Área principal preliminar']}")
         with st.expander("Ver tabla completa de registros"):
             results(filtered)
