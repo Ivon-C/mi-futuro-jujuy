@@ -57,19 +57,45 @@ topics = {
 }
 ignore = {"donde", "puedo", "estudiar", "carreras", "carrera", "quiero", "tienen", "tiene", "oferta", "ofrecen", "sobre", "relacionadas", "relacionado", "interesa", "gustaria", "saber", "para", "como", "cuales", "jujuy", "instituto", "universidad", "tecnicatura", "profesorado", "estudios", "formacion", "localidad", "hola", "buenas"}
 
+def match_localities(message):
+    q = normalize(message)
+    # Variantes frecuentes en el habla y la escritura local.
+    q = re.sub(r"\\bgral\\.?\\b", "general", q)
+    aliases = {
+        "libertador": "Libertador General San Martín",
+        "libertador gral san martin": "Libertador General San Martín",
+        "libertador general san martin": "Libertador General San Martín",
+        "ledesma ciudad": "Libertador General San Martín",
+        "san salvador": "San Salvador de Jujuy",
+        "capital de jujuy": "San Salvador de Jujuy",
+    }
+    matched = []
+    for alias, canonical in aliases.items():
+        if alias in q and canonical in towns and canonical not in matched:
+            matched.append(canonical)
+    for loc in towns:
+        if normalize(loc) in q and loc not in matched:
+            matched.append(loc)
+    return matched
+
 def find_careers(message):
     q = normalize(message)
-    selected_localities = [loc for loc in towns if normalize(loc) in q]
+    selected_localities = match_localities(message)
     subset = df[df[town].isin(selected_localities)] if selected_localities else df
     detected = []
-    for name, keywords in topics.items():
+    for keywords in topics.values():
         if any(word in q for word in keywords):
             detected.extend(keywords)
-    words = [word for word in re.findall(r"[a-z]+", q) if len(word) >= 4 and word not in ignore]
+    words = [word for word in re.findall(r"[a-z]+", q)
+             if len(word) >= 4 and word not in ignore]
     if selected_localities:
+        # Si el usuario solo nombra una localidad, mostrar toda su oferta.
         for loc in selected_localities:
             words = [word for word in words if word not in normalize(loc).split()]
-    searchable = subset[career].astype(str).map(normalize) + " " + subset["Área principal preliminar"].astype(str).map(normalize)
+        words = [word for word in words if word not in {
+            "libertador", "gral", "general", "martin", "ledesma", "ciudad", "capital"}]
+    searchable = (subset[career].astype(str).map(normalize) + " " +
+                  subset["Área principal preliminar"].astype(str).map(normalize))
     if detected:
         found = subset[searchable.map(lambda value: any(word in value for word in detected))]
     elif words:
