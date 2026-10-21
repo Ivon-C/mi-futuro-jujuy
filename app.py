@@ -38,6 +38,14 @@ for name in ["Ingeniería de Minas", "Ingeniería Química",
         })
 if new_rows:
     df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
+# Unificamos la escritura de localidades, incluso si el Excel trae mayúsculas.
+df["Localidad"] = df["Localidad"].astype(str).str.strip()
+df["Localidad"] = df["Localidad"].replace({
+    "LIBERTADOR GRAL SAN MARTÍN": "Libertador General San Martín",
+    "LIBERTADOR GRAL. SAN MARTÍN": "Libertador General San Martín",
+    "LIBERTADOR GENERAL SAN MARTÍN": "Libertador General San Martín",
+    "Libertador Gral. San Martín": "Libertador General San Martín"
+})
 town = "Localidad"
 career = "Carrera / título"
 towns = sorted(df[town].astype(str).unique())
@@ -57,7 +65,10 @@ def results(frame):
         st.info("No hay coincidencias en esta base preliminar.")
     else:
         st.caption(f"{len(frame)} registros históricos")
-        st.dataframe(frame[["Institución",town,career,"Tipo de formación","Área principal preliminar"]], hide_index=True, use_container_width=True)
+        display_cols = ["Institución", town, career, "Tipo de formación", "Área principal preliminar"]
+        if "Observación" in frame.columns:
+            display_cols.append("Observación")
+        st.dataframe(frame[display_cols], hide_index=True, use_container_width=True)
 import re
 import unicodedata
 
@@ -534,7 +545,10 @@ with tab_test:
                     if matches.empty:
                         st.caption("Explorá las carreras en la pestaña Carreras; no hay coincidencias directas en la clasificación preliminar.")
                     else:
-                        st.dataframe(matches[[career, town, "Institución"]].drop_duplicates().head(6), hide_index=True, use_container_width=True)
+                        display_cols = [career, town, "Institución"]
+                        if "Observación" in matches.columns:
+                            display_cols.append("Observación")
+                        st.dataframe(matches[display_cols].drop_duplicates(), hide_index=True, use_container_width=True)
             else:
                 st.info("Elegiste 'No estoy seguro/a' en todas las preguntas. Podés explorar actividades antes de decidir.")
             total_uncertain = sum(uncertainty.values())
