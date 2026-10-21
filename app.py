@@ -61,36 +61,87 @@ with tab_map:
     }
     dept_names = sorted(dept_towns)
     geo_path = Path(__file__).with_name("departamentos_jujuy.geojson")
+    if "dept_choice" not in st.session_state:
+        st.session_state.dept_choice = "Todos"
+    if "last_map_click" not in st.session_state:
+        st.session_state.last_map_click = None
+
+    selected_department = st.selectbox(
+        "Elegí un departamento (también podés hacer clic en el mapa)",
+        ["Todos"] + dept_names, key="dept_choice"
+    )
     if geo_path.exists():
         with open(geo_path, encoding="utf-8") as geo_file:
             boundaries = json.load(geo_file)
-        m = folium.Map(location=[-23.3, -65.65], zoom_start=8, tiles=None, zoom_control=False, scrollWheelZoom=False)
+        m = folium.Map(
+            location=[-23.25, -65.7], zoom_start=8, tiles=None,
+            zoom_control=False, scrollWheelZoom=False,
+            dragging=False, doubleClickZoom=False
+        )
         folium.GeoJson(
             boundaries,
             name="Departamentos",
             style_function=lambda feature: {
-                "fillColor": feature["properties"]["color"],
-                "color": "#475569", "weight": 1.6, "fillOpacity": 0.85
+                "fillColor": "#F59E0B" if feature["properties"]["departamento"] == selected_department
+                             else feature["properties"]["color"],
+                "color": "#9A3412" if feature["properties"]["departamento"] == selected_department
+                         else "#475569",
+                "weight": 4 if feature["properties"]["departamento"] == selected_department else 1.6,
+                "fillOpacity": 1 if feature["properties"]["departamento"] == selected_department else 0.88
             },
             highlight_function=lambda feature: {
-                "fillColor": "#F59E0B", "color": "#0F172A", "weight": 3, "fillOpacity": 1
+                "fillColor": "#F59E0B", "color": "#9A3412",
+                "weight": 3, "fillOpacity": 1
             },
-            tooltip=folium.GeoJsonTooltip(fields=["departamento"], aliases=["Departamento:"]),
+            tooltip=folium.GeoJsonTooltip(
+                fields=["departamento"], aliases=["Departamento:"], sticky=False
+            ),
         ).add_to(m)
+        # Etiquetas visibles, ubicadas sobre cada departamento.
+        # Los nombres largos se dividen en dos renglones para que no se superpongan.
+        label_names = {
+            "DOCTOR MANUEL BELGRANO": "Dr. Manuel<br>Belgrano",
+            "SANTA CATALINA": "Santa<br>Catalina",
+            "SANTA BARBARA": "Santa<br>Bárbara",
+            "VALLE GRANDE": "Valle<br>Grande",
+            "SAN ANTONIO": "San<br>Antonio",
+            "SAN PEDRO": "San Pedro",
+            "EL CARMEN": "El Carmen",
+        }
+        for feature in boundaries["features"]:
+            name = feature["properties"]["departamento"]
+            ring = feature["geometry"]["coordinates"][0]
+            lons = [p[0] for p in ring]
+            lats = [p[1] for p in ring]
+            lat, lon = (min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2
+            label = label_names.get(name, name.title())
+            folium.Marker(
+                [lat, lon],
+                icon=folium.DivIcon(
+                    icon_size=(115, 32), icon_anchor=(57, 16),
+                    html=(
+                        '<div style="width:115px;text-align:center;'
+                        'font:600 10px/1.1 Arial,sans-serif;color:#253047;'
+                        'text-shadow:1px 1px 2px white,-1px -1px 2px white;'
+                        'pointer-events:none;">' + label + '</div>'
+                    )
+                ),
+            ).add_to(m)
         m.fit_bounds([[-24.65, -67.3], [-21.7, -64.0]])
-        event = st_folium(m, height=620, use_container_width=True,
-                          returned_objects=["last_active_drawing"], key="mapa_departamentos")
-        selected_polygon = (event or {}).get("last_active_drawing") or {}
-        selected_name = (selected_polygon.get("properties") or {}).get("departamento")
+        event = st_folium(
+            m, height=620, use_container_width=True,
+            returned_objects=["last_object_clicked_tooltip"],
+            key="mapa_departamentos"
+        )
+        clicked = (event or {}).get("last_object_clicked_tooltip")
+        if clicked and clicked != st.session_state.last_map_click:
+            st.session_state.last_map_click = clicked
+            matched = next((name for name in dept_names if name in str(clicked).upper()), None)
+            if matched and matched != selected_department:
+                st.session_state.dept_choice = matched
+                st.rerun()
     else:
-        selected_name = None
         st.error("No se encontró el archivo del mapa departamental.")
-    selected_department = st.selectbox(
-        "Departamento seleccionado",
-        ["Todos"] + dept_names,
-        index=(dept_names.index(selected_name) + 1) if selected_name in dept_names else 0,
-        key="selected_department"
-    )
     if selected_department == "Todos":
         st.info("Hacé clic en un departamento coloreado o elegilo en la lista.")
         selected_town = st.selectbox("Localidad", ["Todas"] + towns, key="map_town_all")
@@ -99,7 +150,7 @@ with tab_map:
         available = [loc for loc in dept_towns[selected_department] if loc in towns]
         st.markdown(f"### 📍 {selected_department.title()}")
         if available:
-            selected_town = st.selectbox("Localidad", ["Todas las localidades"] + available, key="map_town_department")
+            selected_town = st.selectbox("Localidad", ["Todas las localidades"] + available, key=f"map_town_{selected_department}")
             filtered = df[df[town].isin(available)] if selected_town == "Todas las localidades" else df[df[town] == selected_town]
             st.caption(f"{len(filtered)} registros históricos en esta selección.")
         else:
