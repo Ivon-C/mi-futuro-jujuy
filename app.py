@@ -102,6 +102,36 @@ for locality in ["San Pedro", "La Quiaca"]:
             "Área principal preliminar": "Tecnología e informática",
             "Observación": "Extensión áulica FI-UNJu. Duración publicada: 3 años. Confirmar oferta vigente. Fuente: " + fi_url
         })
+# Facultad de Ciencias Agrarias (FCA-UNJu): oferta publicada.
+# Una sede/cohorte publicada NO implica inscripción abierta en el año actual.
+fca_grad = "https://fca.unju.edu.ar/oferta-academica/grado/"
+fca_pre = "https://fca.unju.edu.ar/oferta-academica/pregrado/"
+fca_offerings = [
+    ("Ingeniería Agronómica", "San Salvador de Jujuy", "Ingeniería", "Ambiente y producción", "Carrera de grado de 5 años. Sede central.", fca_grad),
+    ("Ingeniería Agronómica", "San Pedro", "Ingeniería (hasta tercer año en esta sede)", "Ambiente y producción", "Solo hasta 3.º año en San Pedro. Consultar dónde continuar y condiciones de cursado.", fca_grad),
+    ("Licenciatura en Ciencias Biológicas", "San Salvador de Jujuy", "Licenciatura", "Ambiente y producción", "Duración: 5 años.", fca_grad),
+    ("Licenciatura en Bromatología", "San Salvador de Jujuy", "Licenciatura", "Salud y bienestar", "Duración: 4 años y medio; título intermedio de Bromatólogo/a a los 3 años.", fca_grad),
+    ("Licenciatura en Desarrollo Rural", "Abra Pampa", "Licenciatura", "Ambiente y producción", "Cohorte 2024, modalidad especial. Confirmar si admite nuevos ingresantes.", fca_grad),
+    ("Licenciatura en Gestión Ambiental", "Humahuaca", "Licenciatura", "Ambiente y producción", "Duración: 5 años. Confirmar oferta vigente.", fca_grad),
+    ("Tecnicatura Universitaria en Producción de Animales de Granja", "Monterrico", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre),
+    ("Tecnicatura Universitaria en Mecanización Agrícola", "Perico", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre),
+    ("Tecnicatura Universitaria en Transformación de la Producción Agropecuaria", "Tilcara", "Tecnicatura universitaria", "Ambiente y producción", "Cohorte 2026, modalidad especial. Duración: 2 años y medio; consultar ingreso vigente.", fca_pre),
+    ("Tecnicatura Universitaria en Transformación de la Producción Agropecuaria", "Abra Pampa", "Tecnicatura universitaria", "Ambiente y producción", "Cohorte 2026, modalidad especial. Duración: 2 años y medio; consultar ingreso vigente.", fca_pre),
+    ("Tecnicatura Universitaria Forestal", "San Pedro", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre)
+]
+for name, locality, kind, area, note, source in fca_offerings:
+    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+              (df["Localidad"].astype(str).str.casefold() == locality.casefold()) &
+              (df["Institución"].astype(str).str.casefold().str.contains("agrarias|fca", regex=True))).any()
+    if not exists:
+        new_rows.append({
+            "Institución": "UNJu – Facultad de Ciencias Agrarias",
+            "Localidad": locality, "Carrera / título": name,
+            "Tipo de formación": kind, "Área principal preliminar": area,
+            "Observación": note + " Fuente: " + source
+        })
+# Producción Lechera: no se asigna una localidad sin sede confirmada;
+# además, la Facultad indica que no tiene inscripciones habilitadas.
 if new_rows:
     df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
 # Unificamos la escritura de localidades, incluso si el Excel trae mayúsculas.
