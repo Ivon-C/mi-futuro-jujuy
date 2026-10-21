@@ -143,7 +143,7 @@ fce_ingreso_url = "https://www.fce.unju.edu.ar/ingresofceunju"
 fce_2027 = ["Contador Público", "Licenciatura en Administración",
             "Licenciatura en Economía Política"]
 # FHyCS-UNJu: oferta mostrada en la página oficial de ingreso.
-# No se afirma apertura de preinscripción 2027 sin cronograma confirmado.
+# Ingreso 2027 habilitado según confirmación de la usuaria; fechas individuales por consultar.
 fhycs_url = "https://fhycs.unju.edu.ar/ingreso/index.html"
 fhycs_offerings = [
     ("Licenciatura en Antropología", ["San Salvador de Jujuy"], "5 años"),
@@ -176,7 +176,7 @@ for name, localities, duration in fhycs_offerings:
                 "Localidad": locality, "Carrera / título": name,
                 "Tipo de formación": "Profesorado" if name.startswith("Profesorado") else ("Tecnicatura" if name.startswith("Tecnicatura") else "Licenciatura"),
                 "Área principal preliminar": "Educación y humanidades" if any(x in name for x in ("Educación", "Historia", "Filosofía", "Letras", "Antropología", "Editorial")) else "Ciencias sociales y comunicación",
-                "Observación": duration + ". Oferta publicada en FHyCS; inscripción 2027 NO confirmada. Fuente: " + fhycs_url
+                "Observación": duration + ". Ingreso 2027 habilitado según información aportada por la usuaria. Fuente: " + fhycs_url
             })
 # Convocatorias de ingreso 2027 comunicadas por el usuario.
 # Localidad de cursado indicada por la usuaria: San Salvador de Jujuy.
