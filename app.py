@@ -41,10 +41,6 @@ def results(frame):
 import re
 import unicodedata
 
-st.subheader("💬 Tu asistente de carreras")
-st.write("Preguntame qué podés estudiar en una localidad de Jujuy o contame qué tema te interesa.")
-st.caption("Consulto la base histórica de Mi Futuro Jujuy. No soy una IA generativa y no reemplazo a un orientador vocacional.")
-
 def normalize(value):
     value = unicodedata.normalize("NFKD", str(value).casefold())
     return "".join(char for char in value if not unicodedata.combining(char))
@@ -85,12 +81,29 @@ def find_careers(message):
 
 st.markdown("""<style>
 [data-testid="stSidebar"] {display:none;}
-.st-key-cifac_launcher {position:fixed;bottom:20px;right:22px;z-index:999999;width:auto!important;}
-.st-key-cifac_launcher button[data-testid="stPopoverButton"] {background:#7138c8!important;color:white!important;border-radius:28px!important;border:2px solid white!important;box-shadow:0 5px 22px #0003!important;font-weight:700!important;padding:12px 22px!important;}
-@media(max-width:600px){.st-key-cifac_launcher{bottom:12px;right:12px;}}
+.st-key-cifac_launcher {
+    position:fixed; bottom:88px; right:26px; z-index:999999;
+    width:auto!important;
+}
+.st-key-cifac_launcher button[data-testid="stPopoverButton"] {
+    background:linear-gradient(120deg,#6631b9,#8751d7)!important;
+    color:white!important;border-radius:32px!important;
+    border:2px solid white!important;box-shadow:0 7px 26px #38216455!important;
+    font-weight:750!important;font-size:16px!important;padding:15px 25px!important;
+}
+[data-testid="stPopoverBody"] {
+    width:min(560px,calc(100vw - 32px))!important;
+    max-width:calc(100vw - 32px)!important;
+    max-height:min(75vh,740px)!important;
+}
+@media(max-width:600px){
+    .st-key-cifac_launcher{bottom:85px;right:14px;}
+    .st-key-cifac_launcher button[data-testid="stPopoverButton"]{padding:12px 16px!important;font-size:14px!important;}
+    [data-testid="stPopoverBody"]{max-height:72vh!important;}
+}
 </style>""", unsafe_allow_html=True)
 with st.container(key="cifac_launcher"):
-    with st.popover("🤖 CIFAC · ¿Te ayudo?", use_container_width=False):
+    with st.popover("🤖 CIFAC · ¿Necesitás ayuda?", use_container_width=False):
         cifac_avatar = str(Path(__file__).with_name("cifac.svg"))
         avatar_col, name_col = st.columns([1, 4], vertical_alignment="center")
         with avatar_col:
