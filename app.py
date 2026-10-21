@@ -18,6 +18,26 @@ if not FILE.exists():
 def load_data():
     return pd.read_excel(FILE, sheet_name="Carreras").fillna("")
 df = load_data()
+# Fuente: Facultad de Ingeniería UNJu. En Libertador se cursa solo primer año.
+engineering_note = ("SOLO PRIMER AÑO en Libertador. Extensión Áulica FI-UNJu, "
+                    "Escuela Técnica Ing. Herminio Arrieta, Mariano Moreno 1368. "
+                    "Consultá en la UNJu dónde continuar los años siguientes.")
+new_rows = []
+for name in ["Ingeniería de Minas", "Ingeniería Química",
+             "Ingeniería Informática", "Ingeniería Industrial"]:
+    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+              (df["Localidad"].astype(str).str.casefold() == "libertador general san martín")).any()
+    if not exists:
+        new_rows.append({
+            "Institución": "UNJu – Facultad de Ingeniería (Extensión Áulica)",
+            "Localidad": "Libertador General San Martín",
+            "Carrera / título": name,
+            "Tipo de formación": "Ingeniería (solo primer año en esta sede)",
+            "Área principal preliminar": "Tecnología e informática" if "Informática" in name else "Ambiente y producción",
+            "Observación": engineering_note
+        })
+if new_rows:
+    df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
 town = "Localidad"
 career = "Carrera / título"
 towns = sorted(df[town].astype(str).unique())
@@ -263,7 +283,8 @@ with st.container(key="cifac_launcher"):
                              f"Encontré **{len(chosen_rows)} carreras registradas** en esta categoría:", ""]
                     for index, (_, item) in enumerate(chosen_rows.sort_values(career).iterrows(), 1):
                         lines.extend([f"**{index}. {item[career]}**",
-                                      f"🏫 {item['Institución']}", ""])
+                                      f"🏫 {item['Institución']}",
+                                      ("⚠️ " + str(item.get("Observación", ""))) if str(item.get("Observación", "")).strip() else "", ""])
                     lines.append("*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*")
                     response = "\n".join(lines)
                     st.session_state.cifac_step = "continuar"
