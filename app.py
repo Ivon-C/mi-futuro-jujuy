@@ -38,7 +38,92 @@ def results(frame):
     else:
         st.caption(f"{len(frame)} registros históricos")
         st.dataframe(frame[["Institución",town,career,"Tipo de formación","Área principal preliminar"]], hide_index=True, use_container_width=True)
-tab_map,tab_search,tab_test,tab_chat=st.tabs(["🗺️ Mapa","🔎 Carreras","🧭 Intereses","💬 Asistente"])
+import re
+import unicodedata
+
+st.subheader("💬 Tu asistente de carreras")
+st.write("Preguntame qué podés estudiar en una localidad de Jujuy o contame qué tema te interesa.")
+st.caption("Consulto la base histórica de Mi Futuro Jujuy. No soy una IA generativa y no reemplazo a un orientador vocacional.")
+
+def normalize(value):
+    value = unicodedata.normalize("NFKD", str(value).casefold())
+    return "".join(char for char in value if not unicodedata.combining(char))
+
+topics = {
+    "programación y tecnología": ["program", "software", "inform", "comput", "datos", "sistema", "robot", "tecnolog"],
+    "salud": ["salud", "enferm", "medic", "nutric", "kinesi", "laboratorio", "terapia"],
+    "educación y docencia": ["profesor", "docen", "educa", "enseñ", "pedagog", "maestr"],
+    "arte y comunicación": ["arte", "dise", "comunic", "musica", "teatro", "danza", "visual"],
+    "ambiente y producción": ["ambient", "agro", "agrar", "produccion", "natural", "ecolog"],
+    "administración y economía": ["administr", "contab", "econom", "gestion", "empresa", "comerc"],
+    "turismo": ["turis", "hotel", "gastron"],
+    "historia y sociedad": ["historia", "social", "filosof", "derecho", "politic", "sociolog"]
+}
+ignore = {"donde", "puedo", "estudiar", "carreras", "carrera", "quiero", "tienen", "tiene", "oferta", "ofrecen", "sobre", "relacionadas", "relacionado", "interesa", "gustaria", "saber", "para", "como", "cuales", "jujuy", "instituto", "universidad", "tecnicatura", "profesorado", "estudios", "formacion", "localidad", "hola", "buenas"}
+
+def find_careers(message):
+    q = normalize(message)
+    selected_localities = [loc for loc in towns if normalize(loc) in q]
+    subset = df[df[town].isin(selected_localities)] if selected_localities else df
+    detected = []
+    for name, keywords in topics.items():
+        if any(word in q for word in keywords):
+            detected.extend(keywords)
+    words = [word for word in re.findall(r"[a-z]+", q) if len(word) >= 4 and word not in ignore]
+    if selected_localities:
+        for loc in selected_localities:
+            words = [word for word in words if word not in normalize(loc).split()]
+    searchable = subset[career].astype(str).map(normalize) + " " + subset["Área principal preliminar"].astype(str).map(normalize)
+    if detected:
+        found = subset[searchable.map(lambda value: any(word in value for word in detected))]
+    elif words:
+        found = subset[searchable.map(lambda value: any(word in value for word in words))]
+    else:
+        found = subset
+    return found.drop_duplicates(subset=[career, town, "Institución"]), selected_localities
+
+
+with st.sidebar:
+    st.header("💬 Asistente de Mi Futuro Jujuy")
+    st.caption("Tu guía para explorar carreras y localidades de Jujuy.")
+    if "assistant_history" not in st.session_state:
+        st.session_state.assistant_history = []
+    with st.chat_message("assistant"):
+        st.markdown("👋 **¡Hola! Soy el asistente de Mi Futuro Jujuy.**\\n\\nTe ayudo a buscar qué carreras figuran en nuestra base y dónde podrías estudiarlas. Podés preguntarme por una localidad, una carrera o un tema que te interese.\\n\\n**¿Qué te gustaría conocer?**")
+    for item in st.session_state.assistant_history:
+        with st.chat_message(item["role"]):
+            st.markdown(item["content"])
+    st.caption("Preguntas para empezar:")
+    suggestions = ["¿Qué puedo estudiar en Yuto?", "Me interesa la programación", "¿Qué carreras hay en Fraile Pintado?"]
+    picked = None
+    for index, example in enumerate(suggestions):
+        if st.button(example, key=f"sidebar_example_{index}", use_container_width=True):
+            picked = example
+    with st.form("sidebar_chat_form", clear_on_submit=True):
+        question = st.text_input("Tu pregunta", placeholder="Escribí tu consulta...", label_visibility="visible")
+        submitted = st.form_submit_button("➤ Enviar", type="primary", use_container_width=True)
+    message = picked or (question.strip() if submitted else None)
+    if message:
+        st.session_state.assistant_history.append({"role": "user", "content": message})
+        found, selected_localities = find_careers(message)
+        if found.empty:
+            response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
+        else:
+            location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
+            response = f"Encontré estas opciones registradas{location_text}:\\n\\n"
+            for _, item in found.head(8).iterrows():
+                response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\\n"
+            if len(found) > 8:
+                response += f"\\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\\n"
+            response += "\\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
+        st.session_state.assistant_history.append({"role": "assistant", "content": response})
+        st.rerun()
+    if st.button("🗑️ Borrar conversación", key="clear_sidebar_chat"):
+        st.session_state.assistant_history = []
+        st.rerun()
+    st.caption("Buscador conversacional, no IA generativa ni orientación vocacional profesional.")
+
+tab_map,tab_search,tab_test=st.tabs(["🗺️ Mapa","🔎 Carreras","🧭 Intereses"])
 with tab_map:
     st.subheader("Explorá Jujuy por departamento")
     st.caption("Seleccioná un departamento en el mapa de colores para conocer las localidades y carreras registradas.")
@@ -261,83 +346,6 @@ with tab_test:
             if total_uncertain:
                 st.write(f"Marcaste 'No estoy seguro/a' en {total_uncertain} actividades. Es una oportunidad para conocerlas mejor.")
             st.caption("Los registros de carreras son históricos y deben verificarse con cada institución. Este resultado no determina qué estudiar.")
-with tab_chat:
-    import re
-    import unicodedata
 
-    st.subheader("💬 Tu asistente de carreras")
-    st.write("Preguntame qué podés estudiar en una localidad de Jujuy o contame qué tema te interesa.")
-    st.caption("Consulto la base histórica de Mi Futuro Jujuy. No soy una IA generativa y no reemplazo a un orientador vocacional.")
-
-    def normalize(value):
-        value = unicodedata.normalize("NFKD", str(value).casefold())
-        return "".join(char for char in value if not unicodedata.combining(char))
-
-    topics = {
-        "programación y tecnología": ["program", "software", "inform", "comput", "datos", "sistema", "robot", "tecnolog"],
-        "salud": ["salud", "enferm", "medic", "nutric", "kinesi", "laboratorio", "terapia"],
-        "educación y docencia": ["profesor", "docen", "educa", "enseñ", "pedagog", "maestr"],
-        "arte y comunicación": ["arte", "dise", "comunic", "musica", "teatro", "danza", "visual"],
-        "ambiente y producción": ["ambient", "agro", "agrar", "produccion", "natural", "ecolog"],
-        "administración y economía": ["administr", "contab", "econom", "gestion", "empresa", "comerc"],
-        "turismo": ["turis", "hotel", "gastron"],
-        "historia y sociedad": ["historia", "social", "filosof", "derecho", "politic", "sociolog"]
-    }
-    ignore = {"donde", "puedo", "estudiar", "carreras", "carrera", "quiero", "tienen", "tiene", "oferta", "ofrecen", "sobre", "relacionadas", "relacionado", "interesa", "gustaria", "saber", "para", "como", "cuales", "jujuy", "instituto", "universidad", "tecnicatura", "profesorado", "estudios", "formacion", "localidad", "hola", "buenas"}
-
-    def find_careers(message):
-        q = normalize(message)
-        selected_localities = [loc for loc in towns if normalize(loc) in q]
-        subset = df[df[town].isin(selected_localities)] if selected_localities else df
-        detected = []
-        for name, keywords in topics.items():
-            if any(word in q for word in keywords):
-                detected.extend(keywords)
-        words = [word for word in re.findall(r"[a-z]+", q) if len(word) >= 4 and word not in ignore]
-        if selected_localities:
-            for loc in selected_localities:
-                words = [word for word in words if word not in normalize(loc).split()]
-        searchable = subset[career].astype(str).map(normalize) + " " + subset["Área principal preliminar"].astype(str).map(normalize)
-        if detected:
-            found = subset[searchable.map(lambda value: any(word in value for word in detected))]
-        elif words:
-            found = subset[searchable.map(lambda value: any(word in value for word in words))]
-        else:
-            found = subset
-        return found.drop_duplicates(subset=[career, town, "Institución"]), selected_localities
-
-    if "assistant_history" not in st.session_state:
-        st.session_state.assistant_history = []
-    for item in st.session_state.assistant_history:
-        with st.chat_message(item["role"]):
-            st.markdown(item["content"])
-
-    suggestions = ["¿Qué puedo estudiar en Yuto?", "Me interesa la programación", "¿Hay profesorados de Matemática?", "¿Qué carreras hay en Fraile Pintado?"]
-    st.caption("Podés probar con una de estas preguntas:")
-    cols = st.columns(2)
-    picked = None
-    for index, example in enumerate(suggestions):
-        if cols[index % 2].button(example, key=f"assistant_example_{index}", use_container_width=True):
-            picked = example
-    query = st.chat_input("Escribí tu pregunta sobre carreras en Jujuy...")
-    message = query or picked
-    if message:
-        st.session_state.assistant_history.append({"role": "user", "content": message})
-        found, selected_localities = find_careers(message)
-        if found.empty:
-            response = "No encontré coincidencias en nuestra base preliminar. Probá con otra localidad o con una palabra del nombre de la carrera."
-        else:
-            location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
-            response = f"Encontré estas opciones registradas{location_text}:\n\n"
-            for _, item in found.head(10).iterrows():
-                response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\n"
-            if len(found) > 10:
-                response += f"\nHay {len(found) - 10} coincidencias adicionales. Podés precisar tu búsqueda.\n"
-            response += "\n*Estos son registros históricos: confirmá vigencia, sede y gratuidad con cada institución.*"
-        st.session_state.assistant_history.append({"role": "assistant", "content": response})
-        st.rerun()
-    if st.button("🗑️ Borrar conversación", key="clear_assistant"):
-        st.session_state.assistant_history = []
-        st.rerun()
 st.divider()
 st.caption("Mi Futuro Jujuy · Prototipo educativo · Información en revisión")
