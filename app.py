@@ -227,28 +227,33 @@ with tab_test:
             st.subheader("🌟 Tu perfil exploratorio")
             if ranked:
                 st.success("Áreas de mayor interés expresado: " + ", ".join(ranked[:3]))
-                st.markdown("### 🏅 Ranking de intereses")
+                st.markdown("### ✨ Tus 3 áreas de mayor interés")
                 descriptions = {
-                    "Tecnología e informática": "Crear soluciones digitales, explorar datos y resolver desafíos tecnológicos.",
-                    "Salud y bienestar": "Conocer el cuerpo humano, cuidar y acompañar a otras personas.",
-                    "Educación": "Compartir conocimientos y acompañar procesos de aprendizaje.",
-                    "Sociedad y humanidades": "Comprender la historia, la cultura y los problemas de la sociedad.",
-                    "Arte y comunicación": "Crear, expresar ideas y comunicar de distintas maneras.",
-                    "Ambiente y producción": "Cuidar la naturaleza y explorar formas de producción sustentable.",
-                    "Administración y economía": "Organizar proyectos, recursos y emprendimientos.",
-                    "Turismo y servicios": "Compartir el patrimonio de Jujuy y organizar experiencias para visitantes."
+                    "Tecnología e informática": "Te atrae crear soluciones digitales, explorar datos y resolver desafíos tecnológicos.",
+                    "Salud y bienestar": "Te interesa conocer el cuerpo humano, cuidar y acompañar a otras personas.",
+                    "Educación": "Te gusta compartir conocimientos y acompañar procesos de aprendizaje.",
+                    "Sociedad y humanidades": "Te interesa comprender la historia, la cultura y los problemas de la sociedad.",
+                    "Arte y comunicación": "Disfrutás crear, expresar ideas y comunicar de distintas maneras.",
+                    "Ambiente y producción": "Te interesa cuidar la naturaleza y explorar formas de producción sustentable.",
+                    "Administración y economía": "Te gusta organizar proyectos, recursos y emprendimientos.",
+                    "Turismo y servicios": "Te interesa compartir el patrimonio de Jujuy y organizar experiencias para visitantes."
                 }
-                last_score = None
-                position = 0
-                for index, area in enumerate(ranked):
-                    if scores[area] != last_score:
-                        position = index + 1
-                    last_score = scores[area]
-                    place_label = f"{position}° lugar"
-                    with st.container(border=True):
-                        st.markdown(f"**{place_label} — {area}**")
-                        st.write(descriptions[area])
-                st.caption("Las áreas con el mismo promedio comparten posición. Se consideran únicamente las respuestas con interés definido. Este ranking no mide capacidades ni determina qué carrera elegir.")
+                backgrounds = ["#F0E8FF", "#E5F5F4", "#FFF1DB"]
+                accents = ["#6D35B5", "#087C79", "#A66312"]
+                top_three = ranked[:3]
+                for index, area in enumerate(top_three):
+                    number = index + 1
+                    tied_with_previous = index > 0 and scores[area] == scores[top_three[index - 1]]
+                    label = f"{number}° lugar" if not tied_with_previous else f"{number}° área destacada · mismo interés que la anterior"
+                    st.markdown(
+                        f"""<div style="background:{backgrounds[index]};border-left:6px solid {accents[index]};border-radius:14px;padding:20px 24px;margin:12px 0;">
+                        <div style="color:{accents[index]};font-size:22px;font-weight:800;">{label}</div>
+                        <div style="color:#20242c;font-size:23px;font-weight:750;margin:5px 0 9px;">{area}</div>
+                        <div style="color:#414852;font-size:16px;line-height:1.5;">{descriptions[area]}</div>
+                        </div>""",
+                        unsafe_allow_html=True
+                    )
+                st.caption("Se muestran solo tres áreas. Si hay puntajes iguales, el orden entre esas áreas no indica mayor interés. Este resultado es orientativo y no mide capacidades.")
                 st.markdown("### Carreras para seguir explorando")
                 for area in ranked[:3]:
                     st.markdown(f"**{area}**")
