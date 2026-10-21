@@ -105,11 +105,27 @@ with st.container(key="cifac_launcher"):
         for item in st.session_state.assistant_history:
             with st.chat_message(item["role"]):
                 st.markdown(item["content"])
-        st.caption("Preguntas para empezar:")
-        suggestions = ["No sé qué estudiar, ¿me ayudás?", "Quiero buscar carreras por localidad", "Me interesa la tecnología, ¿qué opciones tengo?"]
+        if "cifac_step" not in st.session_state:
+            st.session_state.cifac_step = "inicio"
+        step = st.session_state.cifac_step
+        if step == "inicio" and not st.session_state.assistant_history:
+            st.caption("Elegí una opción para empezar:")
+            suggestions = ["No sé qué estudiar, ¿me ayudás?", "Quiero buscar carreras por localidad", "Me interesa la tecnología, ¿qué opciones tengo?"]
+        elif step == "orientacion":
+            st.caption("¿Cómo querés continuar?")
+            suggestions = ["Quiero descubrir mis intereses", "Prefiero contarte qué actividades me gustan"]
+        elif step == "localidad":
+            st.caption("¿En qué localidad querés estudiar?")
+            suggestions = ["Yuto", "Fraile Pintado", "San Pedro", "San Salvador de Jujuy"]
+        elif step == "actividades":
+            st.caption("Contame qué actividades te gustan en el cuadro de abajo.")
+            suggestions = []
+        else:
+            st.caption("Podés seguir preguntando o iniciar otra búsqueda:")
+            suggestions = ["Buscar carreras por localidad", "Explorar mis intereses"]
         picked = None
         for index, example in enumerate(suggestions):
-            if st.button(example, key=f"cifac_example_{index}", use_container_width=True):
+            if st.button(example, key=f"cifac_option_{step}_{index}", use_container_width=True):
                 picked = example
         with st.form("cifac_chat_form", clear_on_submit=True):
             question = st.text_input("Tu pregunta", placeholder="Escribí tu consulta...", label_visibility="visible")
@@ -118,28 +134,40 @@ with st.container(key="cifac_launcher"):
         if message:
             st.session_state.assistant_history.append({"role": "user", "content": message})
             normalized_message = normalize(message)
-            wants_guidance = any(term in normalized_message for term in ["no se que estudiar", "no se que elegir", "no se que carrera", "estoy indeciso", "estoy indecisa"])
+            wants_guidance = any(term in normalized_message for term in ["no se que estudiar", "no se que elegir", "no se que carrera", "estoy indeciso", "estoy indecisa", "explorar mis intereses"])
             wants_locality = "buscar carreras por localidad" in normalized_message
-            if not wants_guidance and not wants_locality:
-                found, selected_localities = find_careers(message)
-            if wants_guidance:
-                response = "¡Claro! 💜 No necesitás decidir ahora. Podés comenzar con el **test de intereses** en la pestaña 🧭 Intereses, o contarme qué actividades te gustan para explorar carreras relacionadas. ¿Qué preferís?"
+            wants_test = "descubrir mis intereses" in normalized_message
+            wants_activities = "contarte que actividades" in normalized_message
+            if wants_test:
+                response = "🧭 ¡Excelente! Abrí la pestaña **Intereses** de esta página y respondé el cuestionario. Al finalizar verás tus tres áreas destacadas. Después podés volver a CIFAC y contarme qué área te interesó."
+                st.session_state.cifac_step = "continuar"
+            elif wants_activities:
+                response = "💜 ¡Te escucho! Escribime qué te gusta hacer, aprender o investigar. Voy a buscar carreras relacionadas en nuestra base preliminar."
+                st.session_state.cifac_step = "actividades"
+            elif wants_guidance:
+                response = "¡Claro! 💜 No necesitás decidir ahora. Podemos empezar con el **test de intereses** o con las actividades que disfrutás. ¿Qué preferís?"
+                st.session_state.cifac_step = "orientacion"
             elif wants_locality:
-                response = "¡Vamos a buscar! 📍 ¿En qué localidad de Jujuy te gustaría estudiar? Por ejemplo: Yuto, Fraile Pintado, Perico o San Salvador de Jujuy."
-            elif found.empty:
-                response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
+                response = "📍 ¡Vamos a buscar! ¿En qué localidad de Jujuy te gustaría estudiar? Elegí una opción o escribí otra localidad."
+                st.session_state.cifac_step = "localidad"
             else:
-                location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
-                response = f"Encontré estas opciones registradas{location_text}:\n\n"
-                for _, item in found.head(8).iterrows():
-                    response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\n"
-                if len(found) > 8:
-                    response += f"\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\n"
-                response += "\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
+                found, selected_localities = find_careers(message)
+                if found.empty:
+                    response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
+                else:
+                    location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
+                    response = f"Encontré estas opciones registradas{location_text}:\\n\\n"
+                    for _, item in found.head(8).iterrows():
+                        response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\\n"
+                    if len(found) > 8:
+                        response += f"\\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\\n"
+                    response += "\\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
+                st.session_state.cifac_step = "continuar"
             st.session_state.assistant_history.append({"role": "assistant", "content": response})
             st.rerun()
         if st.button("🗑️ Borrar conversación", key="clear_cifac_chat"):
             st.session_state.assistant_history = []
+            st.session_state.cifac_step = "inicio"
             st.rerun()
         st.caption("Buscador conversacional, no IA generativa ni orientación vocacional profesional.")
 
