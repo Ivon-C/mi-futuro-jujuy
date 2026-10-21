@@ -615,8 +615,8 @@ with tab_map:
                 "fillColor": "#F59E0B" if feature["properties"]["departamento"] == selected_department
                              else feature["properties"]["color"],
                 "color": "#9A3412" if feature["properties"]["departamento"] == selected_department
-                         else "#475569",
-                "weight": 4 if feature["properties"]["departamento"] == selected_department else 1.6,
+                         else "#344054",
+                "weight": 4 if feature["properties"]["departamento"] == selected_department else 2.2,
                 "fillOpacity": 1 if feature["properties"]["departamento"] == selected_department else 0.88
             },
             highlight_function=lambda feature: {
