@@ -265,7 +265,7 @@ with st.container(key="cifac_launcher"):
                         lines.extend([f"**{index}. {item[career]}**",
                                       f"🏫 {item['Institución']}", ""])
                     lines.append("*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*")
-                    response = "\\n".join(lines)
+                    response = "\n".join(lines)
                     st.session_state.cifac_step = "continuar"
             else:
                 found, selected_localities = find_careers(message)
