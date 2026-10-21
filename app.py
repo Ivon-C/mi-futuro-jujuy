@@ -66,10 +66,7 @@ with tab_map:
     if "last_map_click" not in st.session_state:
         st.session_state.last_map_click = None
 
-    selected_department = st.selectbox(
-        "Elegí un departamento (también podés hacer clic en el mapa)",
-        ["Todos"] + dept_names, key="dept_choice"
-    )
+    selected_department = st.session_state.dept_choice
     if geo_path.exists():
         with open(geo_path, encoding="utf-8") as geo_file:
             boundaries = json.load(geo_file)
@@ -142,6 +139,10 @@ with tab_map:
                 st.rerun()
     else:
         st.error("No se encontró el archivo del mapa departamental.")
+    selected_department = st.selectbox(
+        "Departamento seleccionado (también podés hacer clic en el mapa)",
+        ["Todos"] + dept_names, key="dept_choice"
+    )
     if selected_department == "Todos":
         st.info("Hacé clic en un departamento coloreado o elegilo en la lista.")
         selected_town = st.selectbox("Localidad", ["Todas"] + towns, key="map_town_all")
@@ -150,9 +151,9 @@ with tab_map:
         available = [loc for loc in dept_towns[selected_department] if loc in towns]
         st.markdown(f"### 📍 {selected_department.title()}")
         if available:
-            selected_town = st.selectbox("Localidad", ["Todas las localidades"] + available, key=f"map_town_{selected_department}")
-            filtered = df[df[town].isin(available)] if selected_town == "Todas las localidades" else df[df[town] == selected_town]
-            st.caption(f"{len(filtered)} registros históricos en esta selección.")
+            selected_town = st.selectbox(f"Localidades de {selected_department.title()}", ["Todas las localidades del departamento"] + available, key=f"map_town_{selected_department}")
+            filtered = df[df[town].isin(available)] if selected_town == "Todas las localidades del departamento" else df[df[town] == selected_town]
+            st.caption(f"{len(filtered)} registros históricos en esta selección. Elegí una localidad para ver sus instituciones y carreras.")
         else:
             filtered = df.iloc[0:0]
             st.info("Este departamento no tiene localidades con ofertas cargadas en la base preliminar; eso no significa que no existan carreras.")
