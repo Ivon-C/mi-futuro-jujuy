@@ -3,6 +3,7 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 from pathlib import Path
+import json
 
 st.set_page_config(page_title="Mi Futuro Jujuy", page_icon="🎓", layout="wide")
 st.title("🎓 Mi Futuro Jujuy")
@@ -38,25 +39,73 @@ def results(frame):
         st.dataframe(frame[["Institución",town,career,"Tipo de formación","Área principal preliminar"]], hide_index=True, use_container_width=True)
 tab_map,tab_search,tab_test,tab_chat=st.tabs(["🗺️ Mapa","🔎 Carreras","🧭 Intereses","💬 Asistente"])
 with tab_map:
-    chosen=st.selectbox("Elegí una localidad",["Todas"]+towns)
-    st.caption("Los puntos marcan centros urbanos aproximados, no direcciones de instituciones.")
-    m=folium.Map(location=[-23.9,-65.3],zoom_start=7)
-    for loc, count in df[town].value_counts().items():
-        if loc in coords:
-            folium.CircleMarker(coords[loc],radius=7,tooltip=f"{loc}: {count} registros",popup=loc,color="#087f8c",fill=True).add_to(m)
-    map_event = st_folium(
-        m, height=520, use_container_width=True,
-        returned_objects=["last_object_clicked_tooltip"], key="jujuy_map"
-    )
-    clicked = (map_event or {}).get("last_object_clicked_tooltip")
-    clicked_town = next((loc for loc in towns if clicked and clicked.startswith(loc + ": ")), None)
-    active_town = chosen if chosen != "Todas" else clicked_town
-    if active_town:
-        st.success(f"📍 {active_town}: {len(df[df[town] == active_town])} carreras registradas en la base preliminar.")
-        st.caption("Para volver a ver todas las localidades, elegí otra localidad en el selector o hacé clic en otro marcador.")
+    st.subheader("Explorá Jujuy por departamento")
+    st.caption("Seleccioná un departamento en el mapa de colores para conocer las localidades y carreras registradas.")
+    dept_towns = {
+        "COCHINOCA": ["Abra Pampa"],
+        "EL CARMEN": ["El Carmen", "Monterrico", "Perico"],
+        "DOCTOR MANUEL BELGRANO": ["San Salvador de Jujuy"],
+        "HUMAHUACA": ["Humahuaca"],
+        "LEDESMA": ["Libertador General San Martín", "Fraile Pintado"],
+        "PALPALA": ["Palpalá"],
+        "RINCONADA": [],
+        "SAN ANTONIO": [],
+        "SAN PEDRO": ["San Pedro", "La Mendieta"],
+        "SANTA BARBARA": ["Palmasola", "Yuto"],
+        "SANTA CATALINA": [],
+        "SUSQUES": ["Susques"],
+        "TILCARA": ["Tilcara"],
+        "TUMBAYA": ["Tumbaya"],
+        "VALLE GRANDE": [],
+        "YAVI": ["La Quiaca"],
+    }
+    dept_names = sorted(dept_towns)
+    geo_path = Path(__file__).with_name("departamentos_jujuy.geojson")
+    if geo_path.exists():
+        with open(geo_path, encoding="utf-8") as geo_file:
+            boundaries = json.load(geo_file)
+        m = folium.Map(location=[-23.3, -65.65], zoom_start=8, tiles=None, zoom_control=False, scrollWheelZoom=False)
+        folium.GeoJson(
+            boundaries,
+            name="Departamentos",
+            style_function=lambda feature: {
+                "fillColor": feature["properties"]["color"],
+                "color": "#475569", "weight": 1.6, "fillOpacity": 0.85
+            },
+            highlight_function=lambda feature: {
+                "fillColor": "#F59E0B", "color": "#0F172A", "weight": 3, "fillOpacity": 1
+            },
+            tooltip=folium.GeoJsonTooltip(fields=["departamento"], aliases=["Departamento:"]),
+        ).add_to(m)
+        m.fit_bounds([[-24.65, -67.3], [-21.7, -64.0]])
+        event = st_folium(m, height=620, use_container_width=True,
+                          returned_objects=["last_active_drawing"], key="mapa_departamentos")
+        selected_polygon = (event or {}).get("last_active_drawing") or {}
+        selected_name = (selected_polygon.get("properties") or {}).get("departamento")
     else:
-        st.info("Hacé clic en uno de los círculos del mapa para ver las carreras de esa localidad.")
-    results(df if not active_town else df[df[town] == active_town])
+        selected_name = None
+        st.error("No se encontró el archivo del mapa departamental.")
+    selected_department = st.selectbox(
+        "Departamento seleccionado",
+        ["Todos"] + dept_names,
+        index=(dept_names.index(selected_name) + 1) if selected_name in dept_names else 0,
+        key="selected_department"
+    )
+    if selected_department == "Todos":
+        st.info("Hacé clic en un departamento coloreado o elegilo en la lista.")
+        selected_town = st.selectbox("Localidad", ["Todas"] + towns, key="map_town_all")
+        filtered = df if selected_town == "Todas" else df[df[town] == selected_town]
+    else:
+        available = [loc for loc in dept_towns[selected_department] if loc in towns]
+        st.markdown(f"### 📍 {selected_department.title()}")
+        if available:
+            selected_town = st.selectbox("Localidad", ["Todas las localidades"] + available, key="map_town_department")
+            filtered = df[df[town].isin(available)] if selected_town == "Todas las localidades" else df[df[town] == selected_town]
+            st.caption(f"{len(filtered)} registros históricos en esta selección.")
+        else:
+            filtered = df.iloc[0:0]
+            st.info("Este departamento no tiene localidades con ofertas cargadas en la base preliminar; eso no significa que no existan carreras.")
+    results(filtered)
 with tab_search:
     q=st.text_input("Buscá una carrera o palabra clave")
     loc=st.selectbox("Filtrar localidad",["Todas"]+towns,key="searchloc")
