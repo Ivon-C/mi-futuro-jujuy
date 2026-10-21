@@ -57,6 +57,51 @@ for name, kind, url in [
                             "Consultar requisitos de ingreso y título previo con la Facultad. "
                             "Fuente oficial: " + url)
         })
+# Oferta FI-UNJu: sede central y extensiones áulicas, según página oficial.
+# La oferta publicada no garantiza apertura de inscripciones en cada ciclo.
+fi_url = "https://fi.unju.edu.ar/secretarias/sacad/oferta-academica.html"
+fi_offerings = [
+    ("Ingeniería Química", "Ingeniería", "5 años"),
+    ("Ingeniería de Minas", "Ingeniería", "5 años"),
+    ("Ingeniería Industrial", "Ingeniería", "5 años"),
+    ("Ingeniería Informática", "Ingeniería", "5 años"),
+    ("Licenciatura en Sistemas", "Licenciatura", "5 años"),
+    ("Licenciatura en Ciencias Geológicas", "Licenciatura", "5 años"),
+    ("Licenciatura en Tecnología de los Alimentos", "Licenciatura", "4 años"),
+    ("Profesorado Universitario en Informática", "Profesorado universitario", "4 cuatrimestres"),
+    ("Licenciatura en Informática Educativa", "Licenciatura", "4 cuatrimestres"),
+    ("Analista Programador Universitario", "Pregrado universitario", "3 años"),
+    ("Tecnicatura Universitaria en Perforaciones", "Tecnicatura universitaria", "3 años"),
+    ("Tecnicatura Universitaria en Diseño Integral de Videojuegos", "Tecnicatura universitaria", "3 años")
+]
+for name, kind, duration in fi_offerings:
+    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+              (df["Localidad"].astype(str).str.casefold() == "san salvador de jujuy") &
+              (df["Institución"].astype(str).str.casefold().str.contains("unju|universidad nacional de jujuy|facultad de ingenier", regex=True))).any()
+    if not exists:
+        new_rows.append({
+            "Institución": "UNJu – Facultad de Ingeniería",
+            "Localidad": "San Salvador de Jujuy",
+            "Carrera / título": name,
+            "Tipo de formación": kind,
+            "Área principal preliminar": ("Tecnología e informática" if any(k in name.casefold() for k in
+                ["informát", "sistemas", "programador", "videojuegos"]) else "Ambiente y producción"),
+            "Observación": ("Sede central: Ítalo Palanca 10. Duración publicada: " + duration +
+                            ". Consultar requisitos de ingreso y oferta vigente. Fuente: " + fi_url)
+        })
+for locality in ["San Pedro", "La Quiaca"]:
+    name = "Analista Programador Universitario"
+    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+              (df["Localidad"].astype(str).str.casefold() == locality.casefold())).any()
+    if not exists:
+        new_rows.append({
+            "Institución": "UNJu – Facultad de Ingeniería (Extensión Áulica)",
+            "Localidad": locality,
+            "Carrera / título": name,
+            "Tipo de formación": "Pregrado universitario",
+            "Área principal preliminar": "Tecnología e informática",
+            "Observación": "Extensión áulica FI-UNJu. Duración publicada: 3 años. Confirmar oferta vigente. Fuente: " + fi_url
+        })
 if new_rows:
     df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
 # Unificamos la escritura de localidades, incluso si el Excel trae mayúsculas.
