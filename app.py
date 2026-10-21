@@ -6,6 +6,7 @@ from pathlib import Path
 import json
 
 st.set_page_config(page_title="Mi Futuro Jujuy", page_icon="🎓", layout="wide")
+st.markdown("""<style>div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"] {background:#7138c8;color:white;border:0;font-weight:700;} div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"]:hover {background:#5925a7;color:white;}</style>""", unsafe_allow_html=True)
 st.title("🎓 Mi Futuro Jujuy")
 st.write("Explorá tus intereses y descubrí dónde estudiar en Jujuy.")
 st.warning("Prototipo: datos históricos sin verificar para 2026/2027. Confirmar carreras, sedes y gratuidad en las instituciones.")
@@ -209,7 +210,7 @@ with tab_test:
                 f"{number}. ¿Qué tanto te gustaría...? {question}",
                 options, index=None, key=f"interes_{number}"
             )
-        sent = st.form_submit_button("Ver mi perfil de intereses", use_container_width=True)
+        sent = st.form_submit_button("✨ ¡Descubrir mi perfil vocacional!", type="primary", use_container_width=True)
     if sent:
         if any(answer is None for answer in answers.values()):
             st.warning("Respondé todas las preguntas para ver tus resultados.")
@@ -226,8 +227,28 @@ with tab_test:
             st.subheader("🌟 Tu perfil exploratorio")
             if ranked:
                 st.success("Áreas de mayor interés expresado: " + ", ".join(ranked[:3]))
-                st.bar_chart(pd.Series({area: scores[area] for area in ranked}, name="Interés promedio"))
-                st.caption("Escala de 1 a 4. Los promedios se calculan solo con respuestas de interés; no miden aptitudes.")
+                st.markdown("### 🏅 Ranking de intereses")
+                descriptions = {
+                    "Tecnología e informática": "Crear soluciones digitales, explorar datos y resolver desafíos tecnológicos.",
+                    "Salud y bienestar": "Conocer el cuerpo humano, cuidar y acompañar a otras personas.",
+                    "Educación": "Compartir conocimientos y acompañar procesos de aprendizaje.",
+                    "Sociedad y humanidades": "Comprender la historia, la cultura y los problemas de la sociedad.",
+                    "Arte y comunicación": "Crear, expresar ideas y comunicar de distintas maneras.",
+                    "Ambiente y producción": "Cuidar la naturaleza y explorar formas de producción sustentable.",
+                    "Administración y economía": "Organizar proyectos, recursos y emprendimientos.",
+                    "Turismo y servicios": "Compartir el patrimonio de Jujuy y organizar experiencias para visitantes."
+                }
+                last_score = None
+                position = 0
+                for index, area in enumerate(ranked):
+                    if scores[area] != last_score:
+                        position = index + 1
+                    last_score = scores[area]
+                    medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(position, "🔹")
+                    with st.container(border=True):
+                        st.markdown(f"**{medal} Puesto {position}: {area}**")
+                        st.write(descriptions[area])
+                st.caption("Las áreas con el mismo promedio comparten posición. Se consideran únicamente las respuestas con interés definido. Este ranking no mide capacidades ni determina qué carrera elegir.")
                 st.markdown("### Carreras para seguir explorando")
                 for area in ranked[:3]:
                     st.markdown(f"**{area}**")
