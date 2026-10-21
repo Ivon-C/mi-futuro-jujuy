@@ -137,6 +137,25 @@ for name, locality, kind, area, note, source in fca_offerings:
         })
 # Producción Lechera: no se asigna una localidad sin sede confirmada;
 # además, la Facultad indica que no tiene inscripciones habilitadas.
+# Convocatorias de ingreso 2027 comunicadas por el usuario.
+# No se asigna localidad sin confirmar la sede en una fuente oficial.
+admission_2027 = [
+    {
+        "Carrera": "Abogacía",
+        "Preinscripción": "1 al 25 de octubre de 2026",
+        "Curso": "Virtual por UNJu Virtual. Módulo I: Lectura y comprensión de textos en la práctica del derecho (2–6 nov); Módulo II: Introducción a las Ciencias Sociales (9–13 nov); Módulo III: Nociones básicas de derecho (16–20 nov).",
+        "Examen": "23 al 26 de febrero de 2027",
+        "Resultados": "Módulos: 27 de noviembre de 2026. Resultados definitivos y orden de mérito: 2 de marzo de 2027."
+    },
+    {
+        "Carrera": "Enfermería Universitaria",
+        "Preinscripción": "1 al 25 de octubre de 2026",
+        "Curso": "Módulo I: Lectura y comprensión de textos (2–6 nov); Módulo II: Química y Física (9–13 nov); Módulo III: Introducción a la Enfermería (16–20 nov); Módulo IV: Morfofisiología (23–27 nov).",
+        "Examen": "18, 19 y 22 de febrero de 2027",
+        "Resultados": "Lista habilitada para rendir: 23 de diciembre de 2026. Resultados definitivos y orden de mérito: 24 de febrero de 2027.",
+        "Cupo": "140 estudiantes. Inicio de cursado: marzo de 2027."
+    }
+]
 if new_rows:
     df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
 # Unificamos la escritura de localidades, incluso si el Excel trae mayúsculas.
@@ -148,6 +167,17 @@ df["Localidad"] = df["Localidad"].replace({
     "Libertador Gral. San Martín": "Libertador General San Martín"
 })
 town = "Localidad"
+st.markdown("### 📅 Ingreso 2027: fechas de preinscripción")
+st.caption("Cronogramas informados para Abogacía y Enfermería Universitaria. Confirmá requisitos, enlaces de inscripción y sede con la institución.")
+for admission in admission_2027:
+    with st.expander("🎓 " + admission["Carrera"] + " — preinscripción hasta el 25/10/2026"):
+        st.write("**Preinscripción:** " + admission["Preinscripción"])
+        st.write("**Curso de ingreso:** " + admission["Curso"])
+        st.write("**Examen:** " + admission["Examen"])
+        st.write("**Resultados:** " + admission["Resultados"])
+        if "Cupo" in admission:
+            st.write("**Cupo e inicio:** " + admission["Cupo"])
+
 career = "Carrera / título"
 towns = sorted(df[town].astype(str).unique())
 coords = {
