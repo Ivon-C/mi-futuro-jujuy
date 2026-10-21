@@ -137,6 +137,11 @@ for name, locality, kind, area, note, source in fca_offerings:
         })
 # Producción Lechera: no se asigna una localidad sin sede confirmada;
 # además, la Facultad indica que no tiene inscripciones habilitadas.
+# FCE-UNJu: anuncio de ingreso 2027 aportado por la usuaria.
+# No inventar plazos ni estado de inscripción. Localidad de cursado por verificar.
+fce_ingreso_url = "https://www.fce.unju.edu.ar/ingresofceunju"
+fce_2027 = ["Contador Público", "Licenciatura en Administración",
+            "Licenciatura en Economía Política"]
 # Convocatorias de ingreso 2027 comunicadas por el usuario.
 # Localidad de cursado indicada por la usuaria: San Salvador de Jujuy.
 admission_2027 = [
@@ -169,6 +174,10 @@ df["Localidad"] = df["Localidad"].replace({
     "Libertador Gral. San Martín": "Libertador General San Martín"
 })
 town = "Localidad"
+st.markdown("### 📚 Ingreso 2027 — Facultad de Ciencias Económicas (UNJu)")
+st.write("Carreras anunciadas: **Contador Público**, **Licenciatura en Administración** y **Licenciatura en Economía Política**.")
+st.info("La Facultad publicó información de ingreso 2027. Consultá allí fechas, requisitos, cursillos y sedes; no hay fechas verificadas en este catálogo.")
+st.link_button("Consultar Ingreso 2027 — FCE UNJu", fce_ingreso_url)
 st.markdown("### 📅 Ingreso 2027: fechas de preinscripción")
 st.caption("Cronogramas informados para Abogacía y Enfermería Universitaria en San Salvador de Jujuy. Confirmá requisitos y enlaces de inscripción con la institución.")
 for admission in admission_2027:
