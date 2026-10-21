@@ -157,7 +157,20 @@ with tab_map:
         else:
             filtered = df.iloc[0:0]
             st.info("Este departamento no tiene localidades con ofertas cargadas en la base preliminar; eso no significa que no existan carreras.")
-    results(filtered)
+    if filtered.empty:
+        st.info("Todavía no hay ofertas cargadas para esta selección en la base preliminar.")
+    else:
+        st.markdown("### 🏫 Instituciones y carreras")
+        st.caption("Oferta histórica preliminar: confirmar vigencia, gratuidad y sede con cada institución.")
+        for institution, group in filtered.groupby("Institución", sort=True):
+            with st.expander(f"🏫 {institution} · {len(group)} carreras", expanded=len(filtered) <= 20):
+                places = ", ".join(sorted(group[town].astype(str).unique()))
+                st.caption(f"📍 {places}")
+                for _, item in group.iterrows():
+                    st.markdown(f"**🎓 {item[career]}**")
+                    st.caption(f"{item['Tipo de formación']} · {item['Área principal preliminar']}")
+        with st.expander("Ver tabla completa de registros"):
+            results(filtered)
 with tab_search:
     q=st.text_input("Buscá una carrera o palabra clave")
     loc=st.selectbox("Filtrar localidad",["Todas"]+towns,key="searchloc")
