@@ -841,12 +841,47 @@ with tab_map:
         with st.expander("Ver tabla completa de registros"):
             results(filtered)
 with tab_search:
-    q=st.text_input("Buscá una carrera o palabra clave")
-    loc=st.selectbox("Filtrar localidad",["Todas"]+towns,key="searchloc")
-    subset=df if loc=="Todas" else df[df[town]==loc]
-    if q:
-        subset=subset[subset.apply(lambda row:q.casefold() in " ".join(map(str,row.values)).casefold(),axis=1)]
-    results(subset)
+    st.markdown("### 🔎 Encontrá tu carrera")
+    st.caption("Buscá por nombre, institución o área de interés y descubrí dónde estudiar en Jujuy.")
+    col_busqueda, col_localidad = st.columns([2, 1], gap="medium")
+    with col_busqueda:
+        q = st.text_input("¿Qué te gustaría estudiar?", placeholder="Ej.: Matemática, Enfermería, Programación…", key="busqueda_carrera")
+    with col_localidad:
+        loc = st.selectbox("📍 Localidad", ["Todas las localidades"] + towns, key="searchloc")
+    tipos = sorted(t for t in df["Tipo de formación"].astype(str).unique() if t.strip())
+    tipo = st.selectbox("🎓 Tipo de formación", ["Todas las formaciones"] + tipos, key="searchtipo")
+    subset = df.copy()
+    if loc != "Todas las localidades":
+        subset = subset[subset[town] == loc]
+    if tipo != "Todas las formaciones":
+        subset = subset[subset["Tipo de formación"] == tipo]
+    if q.strip():
+        consulta = normalize(q.strip())
+        subset = subset[subset.apply(lambda row: consulta in normalize(" ".join(map(str, row.values))), axis=1)]
+    st.markdown(f"**{len(subset)} opciones encontradas**")
+    st.caption("Oferta de referencia: verificá requisitos, sedes e inscripciones con cada institución.")
+    if subset.empty:
+        st.info("No encontramos coincidencias. Probá otra palabra o seleccioná «Todas las localidades».")
+    else:
+        for _, carrera_row in subset.iterrows():
+            nombre = str(carrera_row.get(career, "")).strip()
+            institucion = str(carrera_row.get("Institución", "")).strip()
+            localidad = str(carrera_row.get(town, "")).strip()
+            formacion = str(carrera_row.get("Tipo de formación", "")).strip()
+            area = str(carrera_row.get("Área principal preliminar", "")).strip()
+            observacion = str(carrera_row.get("Observación", "")).strip()
+            sede = str(carrera_row.get("Sede de cursado confirmada", "")).strip()
+            with st.container(border=True):
+                st.markdown(f"#### 🎓 {nombre}")
+                if formacion:
+                    st.caption(f"📘 {formacion}" + (f"  ·  {area}" if area else ""))
+                st.write(f"🏫 **Institución:** {institucion}")
+                st.write(f"📍 **Localidad:** {localidad}")
+                if sede:
+                    st.write(f"🏢 **Sede de cursado:** {sede}")
+                if observacion:
+                    with st.expander("ℹ️ Información importante"):
+                        st.write(observacion)
 with tab_test:
     st.subheader("🧭 Descubrí tus intereses")
     st.write("Respondé según lo que te gustaría hacer. No hay respuestas correctas.")
