@@ -90,18 +90,23 @@ st.markdown("""<style>
 @media(max-width:600px){.st-key-cifac_launcher{bottom:12px;right:12px;}}
 </style>""", unsafe_allow_html=True)
 with st.container(key="cifac_launcher"):
-    with st.popover("💬 CIFAC · ¿Te ayudo?", use_container_width=False):
-        st.subheader("🤖 CIFAC")
+    with st.popover("🤖 CIFAC · ¿Te ayudo?", use_container_width=False):
+        cifac_avatar = str(Path(__file__).with_name("cifac.svg"))
+        avatar_col, name_col = st.columns([1, 4], vertical_alignment="center")
+        with avatar_col:
+            st.image(cifac_avatar, width=65)
+        with name_col:
+            st.subheader("CIFAC")
         st.caption("Tu guía para explorar carreras y localidades de Jujuy.")
         if "assistant_history" not in st.session_state:
             st.session_state.assistant_history = []
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar=cifac_avatar):
             st.markdown("👋 **¡Hola! Soy CIFAC, tu asistente de Mi Futuro Jujuy.**\n\nTe ayudo a buscar qué carreras figuran en nuestra base y dónde podrías estudiarlas. Podés preguntarme por una localidad, una carrera o un tema que te interese.\n\n**¿Qué te gustaría conocer?**")
         for item in st.session_state.assistant_history:
             with st.chat_message(item["role"]):
                 st.markdown(item["content"])
         st.caption("Preguntas para empezar:")
-        suggestions = ["¿Qué puedo estudiar en Yuto?", "Me interesa la programación", "¿Qué carreras hay en Fraile Pintado?"]
+        suggestions = ["No sé qué estudiar, ¿me ayudás?", "Quiero buscar carreras por localidad", "Me interesa la tecnología, ¿qué opciones tengo?"]
         picked = None
         for index, example in enumerate(suggestions):
             if st.button(example, key=f"cifac_example_{index}", use_container_width=True):
@@ -112,8 +117,16 @@ with st.container(key="cifac_launcher"):
         message = picked or (question.strip() if submitted else None)
         if message:
             st.session_state.assistant_history.append({"role": "user", "content": message})
-            found, selected_localities = find_careers(message)
-            if found.empty:
+            normalized_message = normalize(message)
+            wants_guidance = any(term in normalized_message for term in ["no se que estudiar", "no se que elegir", "no se que carrera", "estoy indeciso", "estoy indecisa"])
+            wants_locality = "buscar carreras por localidad" in normalized_message
+            if not wants_guidance and not wants_locality:
+                found, selected_localities = find_careers(message)
+            if wants_guidance:
+                response = "¡Claro! 💜 No necesitás decidir ahora. Podés comenzar con el **test de intereses** en la pestaña 🧭 Intereses, o contarme qué actividades te gustan para explorar carreras relacionadas. ¿Qué preferís?"
+            elif wants_locality:
+                response = "¡Vamos a buscar! 📍 ¿En qué localidad de Jujuy te gustaría estudiar? Por ejemplo: Yuto, Fraile Pintado, Perico o San Salvador de Jujuy."
+            elif found.empty:
                 response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
             else:
                 location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
