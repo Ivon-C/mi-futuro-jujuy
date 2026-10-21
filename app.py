@@ -186,33 +186,62 @@ with tab_search:
         subset=subset[subset.apply(lambda row:q.casefold() in " ".join(map(str,row.values)).casefold(),axis=1)]
     results(subset)
 with tab_test:
-    st.subheader("Cuestionario exploratorio de intereses")
-    st.info("Ejercicio orientativo, no es un test vocacional validado.")
-    areas={
-        "Tecnología e informática":["Me gusta resolver problemas con computadoras","Me interesaría crear aplicaciones"],
-        "Salud":["Me interesa cuidar la salud de las personas","Me gusta aprender sobre el cuerpo humano"],
-        "Educación":["Disfruto explicar temas a otros","Me gustaría acompañar aprendizajes"],
-        "Sociales":["Me interesa la historia y la sociedad","Me gusta investigar problemas sociales"],
-        "Arte y diseño":["Disfruto crear producciones artísticas","Me interesa diseñar objetos o imágenes"],
-        "Agro y ambiente":["Me importa cuidar el ambiente","Me interesa la producción sustentable"]
+    st.subheader("🧭 Descubrí tus intereses")
+    st.write("Respondé según lo que te gustaría hacer. No hay respuestas correctas.")
+    st.info("Actividad exploratoria, no es un test vocacional validado.")
+    areas = {
+        "Tecnología e informática": ["Crear una aplicación que resuelva un problema cotidiano.", "Investigar por qué un dispositivo no funciona.", "Encontrar patrones en un conjunto de datos."],
+        "Salud y bienestar": ["Aprender cómo funciona el cuerpo humano.", "Participar en actividades de prevención y cuidado.", "Escuchar y acompañar a alguien que necesita ayuda."],
+        "Educación": ["Explicar un tema de distintas maneras.", "Preparar una actividad para que otras personas aprendan.", "Ayudar a alguien a superar una dificultad de aprendizaje."],
+        "Sociedad y humanidades": ["Investigar una historia de tu comunidad.", "Debatir soluciones para un problema social.", "Comprender cómo cambian las costumbres de una sociedad."],
+        "Arte y comunicación": ["Crear un video para contar una historia.", "Diseñar imágenes para comunicar una idea.", "Inventar una producción musical, visual o escrita."],
+        "Ambiente y producción": ["Investigar cómo proteger un ecosistema.", "Conocer cómo se producen los alimentos.", "Proponer soluciones para reducir residuos."],
+        "Administración y economía": ["Organizar los recursos de un proyecto.", "Planificar un pequeño emprendimiento.", "Comparar presupuestos para tomar decisiones."],
+        "Turismo y servicios": ["Diseñar un recorrido para conocer Jujuy.", "Organizar una actividad para recibir visitantes.", "Dar a conocer las tradiciones de una localidad."]
     }
-    with st.form("intereses"):
-        answers={}
-        for area, questions in areas.items():
-            st.markdown("**"+area+"**")
-            for i,q in enumerate(questions):
-                answers[(area,i)]=st.radio(q,["Nada","Poco","Bastante","Mucho"],horizontal=True,index=None,key=area+str(i))
-        sent=st.form_submit_button("Ver resultados")
+    questions = [(area, i, question) for area, items in areas.items() for i, question in enumerate(items)]
+    questions = sorted(questions, key=lambda item: (item[1] * 11 + list(areas).index(item[0]) * 5) % 24)
+    options = ["Mucho", "Bastante", "Poco", "Nada", "No estoy seguro/a"]
+    with st.form("intereses_nuevo"):
+        answers = {}
+        for number, (area, index, question) in enumerate(questions, 1):
+            answers[(area, index)] = st.radio(
+                f"{number}. ¿Qué tanto te gustaría...? {question}",
+                options, index=None, key=f"interes_{number}"
+            )
+        sent = st.form_submit_button("Ver mi perfil de intereses", use_container_width=True)
     if sent:
-        if None in answers.values():
-            st.error("Respondé todas las afirmaciones.")
+        if any(answer is None for answer in answers.values()):
+            st.warning("Respondé todas las preguntas para ver tus resultados.")
         else:
-            points={"Nada":0,"Poco":1,"Bastante":2,"Mucho":3}
-            scores={area:sum(points[answers[(area,i)]] for i in range(2)) for area in areas}
-            top=sorted(scores,key=scores.get,reverse=True)[:3]
-            st.success("Áreas de mayor interés: "+", ".join(top))
-            st.bar_chart(pd.Series(scores))
-            st.caption("Los resultados son una invitación a explorar, no una indicación de qué carrera elegir.")
+            values = {"Mucho": 4, "Bastante": 3, "Poco": 2, "Nada": 1}
+            scores = {}
+            uncertainty = {}
+            for area, items in areas.items():
+                selected = [answers[(area, i)] for i in range(len(items))]
+                valid = [values[x] for x in selected if x in values]
+                scores[area] = round(sum(valid) / len(valid), 2) if valid else None
+                uncertainty[area] = selected.count("No estoy seguro/a")
+            ranked = sorted((area for area in areas if scores[area] is not None), key=lambda area: scores[area], reverse=True)
+            st.subheader("🌟 Tu perfil exploratorio")
+            if ranked:
+                st.success("Áreas de mayor interés expresado: " + ", ".join(ranked[:3]))
+                st.bar_chart(pd.Series({area: scores[area] for area in ranked}, name="Interés promedio"))
+                st.caption("Escala de 1 a 4. Los promedios se calculan solo con respuestas de interés; no miden aptitudes.")
+                st.markdown("### Carreras para seguir explorando")
+                for area in ranked[:3]:
+                    st.markdown(f"**{area}**")
+                    matches = df[df["Área principal preliminar"].astype(str).str.lower().str.contains(area.split(" ")[0].lower(), regex=False)]
+                    if matches.empty:
+                        st.caption("Explorá las carreras en la pestaña Carreras; no hay coincidencias directas en la clasificación preliminar.")
+                    else:
+                        st.dataframe(matches[[career, town, "Institución"]].drop_duplicates().head(6), hide_index=True, use_container_width=True)
+            else:
+                st.info("Elegiste 'No estoy seguro/a' en todas las preguntas. Podés explorar actividades antes de decidir.")
+            total_uncertain = sum(uncertainty.values())
+            if total_uncertain:
+                st.write(f"Marcaste 'No estoy seguro/a' en {total_uncertain} actividades. Es una oportunidad para conocerlas mejor.")
+            st.caption("Los registros de carreras son históricos y deben verificarse con cada institución. Este resultado no determina qué estudiar.")
 with tab_chat:
     st.subheader("Asistente de carreras")
     st.caption("Primera versión: búsqueda conversacional por palabras, sin IA generativa.")
