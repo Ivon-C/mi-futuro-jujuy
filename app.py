@@ -57,6 +57,38 @@ topics = {
 }
 ignore = {"donde", "puedo", "estudiar", "carreras", "carrera", "quiero", "tienen", "tiene", "oferta", "ofrecen", "sobre", "relacionadas", "relacionado", "interesa", "gustaria", "saber", "para", "como", "cuales", "jujuy", "instituto", "universidad", "tecnicatura", "profesorado", "estudios", "formacion", "localidad", "hola", "buenas"}
 
+dept_towns = {
+    "COCHINOCA": ["Abra Pampa"],
+    "EL CARMEN": ["El Carmen", "Monterrico", "Perico"],
+    "DOCTOR MANUEL BELGRANO": ["San Salvador de Jujuy"],
+    "HUMAHUACA": ["Humahuaca"],
+    "LEDESMA": ["Libertador General San Martín", "Fraile Pintado", "Yuto"],
+    "PALPALA": ["Palpalá"],
+    "RINCONADA": [],
+    "SAN ANTONIO": [],
+    "SAN PEDRO": ["San Pedro", "La Mendieta"],
+    "SANTA BARBARA": ["Palmasola"],
+    "SANTA CATALINA": [],
+    "SUSQUES": ["Susques"],
+    "TILCARA": ["Tilcara"],
+    "TUMBAYA": ["Tumbaya"],
+    "VALLE GRANDE": [],
+    "YAVI": ["La Quiaca"],
+}
+
+def career_kind(row):
+    title = normalize(row["Carrera / título"])
+    formation = normalize(row["Tipo de formación"])
+    if "profesor" in title or "profesor" in formation:
+        return "Profesorados"
+    if "ingenier" in title:
+        return "Ingenierías"
+    if "tecnic" in title or "tecnic" in formation:
+        return "Tecnicaturas"
+    if "licenciat" in title:
+        return "Licenciaturas"
+    return "Otras formaciones"
+
 def match_localities(message):
     q = normalize(message)
     # Variantes frecuentes en el habla y la escritura local.
@@ -171,15 +203,23 @@ with st.container(key="cifac_launcher"):
             suggestions = ["Quiero descubrir mis intereses", "Prefiero contarte qué actividades me gustan"]
         elif step == "localidad":
             st.caption("¿En qué localidad querés estudiar?")
-            suggestions = towns[:8]
-            st.caption("También podés escribir cualquier otra localidad de la provincia.")
+            suggestions = []
+            chosen = st.selectbox("Localidad", ["Elegí una localidad"] + towns, key="cifac_town_select")
+            if st.button("Continuar con esta localidad", key="cifac_town_go", disabled=chosen == "Elegí una localidad", use_container_width=True):
+                suggestions = [chosen]
+            st.caption("O escribí el nombre de otra localidad abajo.")
+        elif step == "tipo":
+            loc = st.session_state.get("cifac_locality", "")
+            available = df[df[town] == loc].apply(career_kind, axis=1).unique().tolist()
+            st.caption("¿Qué tipo de formación querés explorar?")
+            suggestions = ["Ver todas las carreras"] + sorted(available)
         elif step == "actividades":
             st.caption("Contame qué actividades te gustan en el cuadro de abajo.")
             suggestions = []
         else:
             st.caption("Podés seguir preguntando o iniciar otra búsqueda:")
             suggestions = ["Buscar carreras por localidad", "Explorar mis intereses"]
-        picked = None
+        picked = chosen if step == "localidad" and st.session_state.get("cifac_town_go") else None
         for index, example in enumerate(suggestions):
             if st.button(example, key=f"cifac_option_{step}_{index}", use_container_width=True):
                 picked = example
@@ -206,10 +246,32 @@ with st.container(key="cifac_launcher"):
             elif wants_locality:
                 response = "📍 ¡Vamos a buscar! ¿En qué localidad de Jujuy te gustaría estudiar? Elegí una opción o escribí otra localidad."
                 st.session_state.cifac_step = "localidad"
+            elif st.session_state.cifac_step == "tipo":
+                loc = st.session_state.get("cifac_locality", "")
+                local_rows = df[df[town] == loc].copy()
+                local_rows["_kind"] = local_rows.apply(career_kind, axis=1)
+                if normalized_message == "ver todas las carreras":
+                    chosen_rows = local_rows
+                else:
+                    chosen_rows = local_rows[local_rows["_kind"].map(normalize) == normalized_message]
+                if chosen_rows.empty:
+                    response = "No encontré esa categoría en esta localidad. Elegí una de las opciones disponibles."
+                else:
+                    response = f"🎓 **{loc} — {message}**\\n\\n"
+                    for _, item in chosen_rows.sort_values(career).iterrows():
+                        response += f"- **{item[career]}** — {item['Institución']}\\n"
+                    response += "\\n*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*"
+                st.session_state.cifac_step = "continuar"
             else:
                 found, selected_localities = find_careers(message)
                 if st.session_state.cifac_step == "localidad" and not selected_localities:
                     response = "No encontré esa localidad en nuestra base histórica. Escribí otra localidad de Jujuy."
+                elif st.session_state.cifac_step == "localidad" and selected_localities:
+                    loc = selected_localities[0]
+                    st.session_state.cifac_locality = loc
+                    kinds = sorted(df[df[town] == loc].apply(career_kind, axis=1).unique().tolist())
+                    response = f"📍 Encontré **{len(df[df[town] == loc])} registros históricos** en **{loc}**. ¿Qué tipo de formación te interesa? Podés elegir: {', '.join(kinds)}, o ver todas las carreras."
+                    st.session_state.cifac_step = "tipo"
                 elif found.empty:
                     response = "No encontré coincidencias en la base preliminar. Probá con otra localidad o con una palabra del nombre de una carrera."
                 else:
@@ -220,7 +282,8 @@ with st.container(key="cifac_launcher"):
                     if len(found) > 8:
                         response += f"\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\n"
                     response += "\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
-                st.session_state.cifac_step = "continuar"
+                if st.session_state.cifac_step not in ("tipo", "localidad"):
+                    st.session_state.cifac_step = "continuar"
             st.session_state.assistant_history.append({"role": "assistant", "content": response})
             st.rerun()
         if st.button("🗑️ Borrar conversación", key="clear_cifac_chat"):
