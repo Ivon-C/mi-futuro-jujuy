@@ -36,6 +36,27 @@ for name in ["Ingeniería de Minas", "Ingeniería Química",
             "Área principal preliminar": "Tecnología e informática" if "Informática" in name else "Ambiente y producción",
             "Observación": engineering_note
         })
+# Nuevas carreras de la Facultad de Ingeniería en San Salvador de Jujuy.
+# La duración de dos años no implica ingreso directo desde la secundaria.
+for name, kind, url in [
+    ("Profesorado Universitario en Informática", "Profesorado universitario",
+     "https://fi.unju.edu.ar/carreras/perfil-alcance/puinf.html"),
+    ("Licenciatura en Informática Educativa", "Licenciatura universitaria",
+     "https://fi.unju.edu.ar/carreras/perfil-alcance/lie.html")
+]:
+    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+              (df["Localidad"].astype(str).str.casefold() == "san salvador de jujuy")).any()
+    if not exists:
+        new_rows.append({
+            "Institución": "UNJu – Facultad de Ingeniería",
+            "Localidad": "San Salvador de Jujuy",
+            "Carrera / título": name,
+            "Tipo de formación": kind,
+            "Área principal preliminar": "Tecnología e informática",
+            "Observación": ("Duración publicada: 2 años (4 cuatrimestres). "
+                            "Consultar requisitos de ingreso y título previo con la Facultad. "
+                            "Fuente oficial: " + url)
+        })
 if new_rows:
     df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
 # Unificamos la escritura de localidades, incluso si el Excel trae mayúsculas.
