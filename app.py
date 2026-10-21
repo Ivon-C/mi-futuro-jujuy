@@ -142,6 +142,42 @@ for name, locality, kind, area, note, source in fca_offerings:
 fce_ingreso_url = "https://www.fce.unju.edu.ar/ingresofceunju"
 fce_2027 = ["Contador Público", "Licenciatura en Administración",
             "Licenciatura en Economía Política"]
+# FHyCS-UNJu: oferta mostrada en la página oficial de ingreso.
+# No se afirma apertura de preinscripción 2027 sin cronograma confirmado.
+fhycs_url = "https://fhycs.unju.edu.ar/ingreso/index.html"
+fhycs_offerings = [
+    ("Licenciatura en Antropología", ["San Salvador de Jujuy"], "5 años"),
+    ("Licenciatura en Ciencias de la Educación", ["San Salvador de Jujuy", "San Pedro"], "5 años"),
+    ("Tecnicatura en Turismo", ["Humahuaca", "El Carmen"], "Carrera articulada con Licenciatura en Turismo; duración total indicada: 4 años"),
+    ("Licenciatura en Turismo", ["Humahuaca", "El Carmen"], "Duración publicada para la propuesta Turismo: 4 años"),
+    ("Licenciatura en Educación para la Salud", ["San Salvador de Jujuy", "San Pedro"], "5 años y medio"),
+    ("Licenciatura en Historia", ["San Salvador de Jujuy"], "5 años"),
+    ("Profesorado en Filosofía", ["San Salvador de Jujuy"], "4 años; oferta conjunta con Licenciatura en Filosofía"),
+    ("Licenciatura en Filosofía", ["San Salvador de Jujuy"], "4 años; oferta conjunta con Profesorado en Filosofía"),
+    ("Profesorado en Letras", ["San Salvador de Jujuy"], "5 años"),
+    ("Profesorado en Educación para la Salud", ["San Salvador de Jujuy"], "4 años"),
+    ("Licenciatura en Trabajo Social", ["San Salvador de Jujuy", "Tilcara"], "5 años"),
+    ("Profesorado en Historia", ["San Salvador de Jujuy"], "5 años"),
+    ("Tecnicatura Universitaria en Gestión y Producción Editorial", ["San Salvador de Jujuy"], "3 años"),
+    ("Licenciatura en Letras", ["San Salvador de Jujuy"], "5 años"),
+    ("Licenciatura en Comunicación Social", ["San Salvador de Jujuy"], "4 años"),
+    ("Tecnicatura en Comunicación Digital Convergente", ["San Salvador de Jujuy"], "3 años")
+]
+# Evitar duplicar filas que ya figuran en el Excel. Se mantiene el estado no confirmado.
+for name, localities, duration in fhycs_offerings:
+    for locality in localities:
+        exists = ((df["Carrera / título"].astype(str).str.strip().str.casefold() == name.casefold()) &
+                  (df["Localidad"].astype(str).str.strip().str.casefold() == locality.casefold())).any()
+        pending = any(row["Carrera / título"].casefold() == name.casefold()
+                      and row["Localidad"].casefold() == locality.casefold() for row in new_rows)
+        if not exists and not pending:
+            new_rows.append({
+                "Institución": "UNJu – Facultad de Humanidades y Ciencias Sociales",
+                "Localidad": locality, "Carrera / título": name,
+                "Tipo de formación": "Profesorado" if name.startswith("Profesorado") else ("Tecnicatura" if name.startswith("Tecnicatura") else "Licenciatura"),
+                "Área principal preliminar": "Educación y humanidades" if any(x in name for x in ("Educación", "Historia", "Filosofía", "Letras", "Antropología", "Editorial")) else "Ciencias sociales y comunicación",
+                "Observación": duration + ". Oferta publicada en FHyCS; inscripción 2027 NO confirmada. Fuente: " + fhycs_url
+            })
 # Convocatorias de ingreso 2027 comunicadas por el usuario.
 # Localidad de cursado indicada por la usuaria: San Salvador de Jujuy.
 admission_2027 = [
