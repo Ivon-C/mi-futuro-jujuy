@@ -161,22 +161,15 @@ with tab_map:
     if filtered.empty:
         st.info("Todavía no hay ofertas cargadas para esta selección en la base preliminar.")
     else:
-        st.markdown("### 🏫 Instituciones y carreras")
+        st.markdown("### 🎓 Carreras por localidad")
         st.caption("Oferta histórica preliminar: confirmar vigencia, gratuidad y sede con cada institución.")
         for locality, locality_group in filtered.groupby(town, sort=True):
             st.markdown(f"#### 📍 {locality}")
-            st.caption(f"{len(locality_group)} registros históricos en esta localidad.")
-            for institution, group in locality_group.groupby("Institución", sort=True):
-                with st.expander(
-                    f"🏫 {institution} · {len(group)} carreras",
-                    expanded=len(filtered) <= 12
-                ):
-                    st.caption(f"Sede o localidad registrada: {locality}")
-                    for _, item in group.iterrows():
-                        st.markdown(f"**🎓 {item[career]}**")
-                        st.caption(
-                            f"{item['Tipo de formación']} · {item['Área principal preliminar']}"
-                        )
+            for _, item in locality_group.sort_values(career).iterrows():
+                with st.container(border=True):
+                    st.markdown(f"**🎓 {item[career]}**")
+                    st.caption(f"🏫 {item['Institución']}")
+                    st.caption(f"{item['Tipo de formación']} · {item['Área principal preliminar']}")
         with st.expander("Ver tabla completa de registros"):
             results(filtered)
 with tab_search:
