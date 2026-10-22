@@ -755,7 +755,13 @@ div[data-testid="stSegmentedControl"] {justify-content:flex-end}
 .mf-card {min-height:255px;border-radius:22px;padding:22px 22px 12px;margin-bottom:4px}
 .mf-card h3 {font-size:1.55rem;margin:12px 0;color:#0b2d54;font-weight:800}
 .mf-card p {color:#274766;font-size:1rem;line-height:1.45}
-.mf-icon {font-size:2.7rem;line-height:1.5}
+.mf-icon {font-size:2.45rem;display:flex;align-items:center;justify-content:center;width:86px;height:86px;margin:5px auto 16px;border-radius:50%;background:#ffffff80;box-shadow:0 2px 10px #102f4a10}
+.mf-card h3,.mf-card p{text-align:center}
+div[class*="st-key-ir_01"] button{background:#007d80!important;border-color:#007d80!important;color:white!important}
+div[class*="st-key-ir_02"] button{background:#0867df!important;border-color:#0867df!important;color:white!important}
+div[class*="st-key-ir_03"] button{background:#ffbb12!important;border-color:#ffbb12!important;color:#102f54!important}
+div[class*="st-key-ir_04"] button{background:#e82d70!important;border-color:#e82d70!important;color:white!important}
+div[class*="st-key-ir_01"] button,div[class*="st-key-ir_02"] button,div[class*="st-key-ir_03"] button,div[class*="st-key-ir_04"] button{border-radius:30px!important;font-weight:750!important}
 .mf-footer {border-top:1px solid #d9e4eb;padding-top:22px;margin-top:25px;color:#34516d;text-align:center}.mf-hero-title em {text-decoration:underline;text-decoration-color:#ffbd13;text-decoration-thickness:5px;text-underline-offset:9px}div[data-testid="stImage"] img {border-radius:20px}
 @media(max-width:700px){.mf-hero-title{letter-spacing:-1px}.mf-art{min-height:240px}.mf-map{height:190px}}
 </style>
