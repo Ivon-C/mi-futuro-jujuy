@@ -303,9 +303,17 @@ df = df.loc[~umbrella].copy()
 # Evitar repeticiones de la misma carrera, institución y localidad.
 df["_clave_carrera"] = df["Carrera / título"].astype(str).str.strip().str.casefold()
 df["_clave_localidad"] = df["Localidad"].astype(str).str.strip().str.casefold()
-df["_clave_institucion"] = df["Institución"].astype(str).str.casefold().str.replace(
-    r"\\s*\\(extensión áulica\\)", "", regex=True
-).str.strip()
+# Unificar variantes del nombre institucional (UNJu, UNJu - Facultad de...).
+# Conservar carreras iguales en localidades diferentes.
+def _clave_institucion_canonica(valor):
+    import unicodedata
+    t = "".join(x for x in unicodedata.normalize("NFKD", str(valor).casefold())
+                if not unicodedata.combining(x))
+    if "unju" in t or "universidad nacional de jujuy" in t:
+        return "universidad nacional de jujuy"
+    t = _re.sub(r"\\s*\\(extension aulica\\)", "", t)
+    return " ".join(t.split())
+df["_clave_institucion"] = df["Institución"].map(_clave_institucion_canonica)
 df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
 df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
 town = "Localidad"
