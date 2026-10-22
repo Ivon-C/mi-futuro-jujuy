@@ -785,9 +785,13 @@ if seleccion_nav=="🧭 Explorá":
         "📊 Economía, administración y gestión":"Organización, gestión, finanzas, economía y emprendimientos.",
         "🧳 Turismo, gastronomía y patrimonio":"Turismo, patrimonio cultural, cocina regional y experiencias para visitantes."
     }
-    for nombre,descripcion in campos.items():
-        with st.expander(nombre):
-            st.write(descripcion)
+    lista_campos = list(campos.items())
+    for inicio in range(0, len(lista_campos), 3):
+        columnas = st.columns(3, gap="small")
+        for columna, (nombre, descripcion) in zip(columnas, lista_campos[inicio:inicio + 3]):
+            with columna:
+                with st.expander(nombre):
+                    st.write(descripcion)
     if st.button("Descubrir mis intereses →",type="primary",key="explora_a_intereses"):
         st.session_state.mf_nav="📊 Mis intereses"
         st.rerun()
