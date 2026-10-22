@@ -1060,7 +1060,7 @@ if seleccion_nav=="📊 Mis intereses":
         "Ingeniería, industria y construcción": [
             "¿Te gustaría diseñar edificios, estructuras, máquinas o procesos de producción?",
             "¿Te interesaría descubrir cómo se fabrican productos y mejorar su elaboración?",
-            "¿Te gustaría resolver problemas relacionados con materiales, energía o construcciones?"
+            "¿Te gustaría diseñar o mejorar máquinas, herramientas o procesos que se utilizan en la industria?"
         ],
         "Ciencias exactas": [
             "¿Disfrutarías resolver desafíos que requieren cálculos y razonamiento lógico?",
