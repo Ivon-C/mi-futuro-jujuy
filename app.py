@@ -607,11 +607,11 @@ with st.container(key="cifac_launcher"):
                     contenido = item["content"]
                     if "Iniciar el test ahora" in contenido:
                         if st.button("🧭 Iniciar el test ahora →", key="cifac_test_en_respuesta", type="primary", use_container_width=True):
-                            st.session_state.mf_nav = "📊 Mis intereses"
+                            st.session_state.mf_nav_pendiente = "📊 Mis intereses"
                             st.rerun()
                     if "Ir al mapa ahora" in contenido:
                         if st.button("🗺️ Ir al mapa ahora →", key="cifac_mapa_en_respuesta", type="primary", use_container_width=True):
-                            st.session_state.mf_nav = "📍 Mapa"
+                            st.session_state.mf_nav_pendiente = "📍 Mapa"
                             st.rerun()
         if "cifac_step" not in st.session_state:
             st.session_state.cifac_step = "inicio"
@@ -721,11 +721,11 @@ with st.container(key="cifac_launcher"):
             acceso_test = any(term in ultimo_normalizado for term in ["test de intereses", "descubrir mis intereses", "explorar mis intereses"])
             if acceso_mapa or st.session_state.cifac_step == "orientacion":
                 if st.button("🗺️ Ir al mapa ahora →", key="cifac_ir_mapa", use_container_width=True):
-                    st.session_state.mf_nav = "📍 Mapa"
+                    st.session_state.mf_nav_pendiente = "📍 Mapa"
                     st.rerun()
             if acceso_test or st.session_state.cifac_step == "orientacion":
                 if st.button("🧭 Iniciar el test ahora →", key="cifac_ir_test", use_container_width=True):
-                    st.session_state.mf_nav = "📊 Mis intereses"
+                    st.session_state.mf_nav_pendiente = "📊 Mis intereses"
                     st.rerun()
         if st.button("🗑️ Borrar conversación", key="clear_cifac_chat"):
             st.session_state.assistant_history = []
@@ -808,6 +808,10 @@ st.markdown('<div class="mf-brand">🏔️ Mi Futuro <em>Jujuy</em> <span style=
 opciones_nav=["🏠 Inicio","🧭 Explorá","📊 Mis intereses","🎓 Buscá carreras","📍 Mapa"]
 if "mf_nav" not in st.session_state:
     st.session_state.mf_nav="🏠 Inicio"
+# Cambiar la navegación solo antes de instanciar el widget: evita
+# StreamlitWidgetAlreadyInstantiatedError al usar los botones de acceso.
+if "mf_nav_pendiente" in st.session_state:
+    st.session_state.mf_nav = st.session_state.pop("mf_nav_pendiente")
 seleccion_nav=st.segmented_control("Secciones",opciones_nav,key="mf_nav",label_visibility="collapsed")
 if seleccion_nav is None:
     seleccion_nav="🏠 Inicio"
@@ -835,7 +839,7 @@ if seleccion_nav=="🏠 Inicio":
         with col:
             st.markdown(f'<div class="mf-card" style="background:{fondo}"><span style="display:inline-flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:50%;background:{color};color:white;font-size:1.22rem;font-weight:850;letter-spacing:.5px;box-shadow:0 3px 8px #18334c1a">{numero}</span><div class="mf-icon">{icono}</div><h3>{titulo}</h3><p>{descripcion}</p></div>',unsafe_allow_html=True)
             if st.button(boton+" →",key="ir_"+numero,use_container_width=True,type="primary"):
-                st.session_state.mf_nav=destino
+                st.session_state.mf_nav_pendiente = destino
                 st.rerun()
     st.markdown('<div class="mf-footer">🎓 Oferta educativa de Jujuy &nbsp; · &nbsp; 🛡️ Información orientativa &nbsp; · &nbsp; 💙 Tu futuro importa</div>',unsafe_allow_html=True)
 
@@ -866,7 +870,7 @@ if seleccion_nav=="🧭 Explorá":
                 with st.expander(nombre):
                     st.write(descripcion)
     if st.button("Descubrir mis intereses →",type="primary",key="explora_a_intereses"):
-        st.session_state.mf_nav="📊 Mis intereses"
+        st.session_state.mf_nav_pendiente = "📊 Mis intereses"
         st.rerun()
 
 if seleccion_nav=="📍 Mapa":
