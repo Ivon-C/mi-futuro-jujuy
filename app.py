@@ -49,7 +49,7 @@ try:
         import unicodedata
         txt = "".join(letra for letra in unicodedata.normalize("NFKD", str(valor).casefold())
                       if not unicodedata.combining(letra))
-        numero = re.search(r"(?:\\bies\\b|instituto de educacion superior)\\s*(?:n[.°ºo]*\\s*)?(\\d+)\\b", txt)
+        numero = re.search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", txt)
         return "ies " + numero.group(1) if numero else txt.strip()
     institutos_google = set(google_df["Institución"].map(clave_institucion))
     df = df[~df["Institución"].map(clave_institucion).isin(institutos_google)].copy()
