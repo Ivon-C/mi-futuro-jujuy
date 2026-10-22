@@ -603,12 +603,12 @@ with st.container(key="cifac_launcher"):
             wants_guidance = any(term in normalized_message for term in ["no se que estudiar", "no se que elegir", "no se que carrera", "estoy indeciso", "estoy indecisa", "explorar mis intereses"])
             wants_locality = "buscar carreras por localidad" in normalized_message
             wants_test = any(term in normalized_message for term in ["descubrir mis intereses", "hacer el test de intereses", "explorar mis intereses"])
-            wants_map = "explorar carreras en el mapa" in normalized_message
+            wants_map = any(term in normalized_message for term in ["explorar carreras en el mapa", "ir al mapa", "quiero ir al mapa", "abrir el mapa", "ver el mapa", "mostrame el mapa"])
             if wants_test:
-                response = "🧭 ¡Excelente! Abrí la pestaña **Intereses** de esta página y respondé el cuestionario. Al finalizar verás tus tres áreas destacadas. Después podés volver a CIFAC y contarme qué área te interesó."
+                response = "🧭 ¡Excelente! Tocá **Iniciar el test ahora** para ir directamente al cuestionario."
                 st.session_state.cifac_step = "continuar"
             elif wants_map:
-                response = "🗺️ Abrí la pestaña **Mapa** de esta página, elegí un departamento y explorá las carreras por localidad y tipo de formación. También puedo buscar una carrera o localidad concreta."
+                response = "🗺️ ¡Vamos al mapa! Tocá el botón **Ir al mapa ahora** que aparece debajo de esta respuesta para abrirlo directamente."
                 st.session_state.cifac_step = "continuar"
             elif wants_guidance:
                 response = "💜 No necesitás decidir ahora. Podés hacer el **test de intereses** para explorar áreas que te llaman la atención, o abrir el **Mapa** para conocer carreras por localidad. ¿Por dónde preferís empezar?"
@@ -665,6 +665,20 @@ with st.container(key="cifac_launcher"):
                     st.session_state.cifac_step = "continuar"
             st.session_state.assistant_history.append({"role": "assistant", "content": response})
             st.rerun()
+        # Accesos directos: el asistente navega, no solo explica dónde hacer clic.
+        if st.session_state.assistant_history:
+            ultimo_usuario = next((item["content"] for item in reversed(st.session_state.assistant_history) if item["role"] == "user"), "")
+            ultimo_normalizado = normalize(ultimo_usuario)
+            acceso_mapa = any(term in ultimo_normalizado for term in ["mapa", "ir al mapa"])
+            acceso_test = any(term in ultimo_normalizado for term in ["test de intereses", "descubrir mis intereses", "explorar mis intereses"])
+            if acceso_mapa or st.session_state.cifac_step == "orientacion":
+                if st.button("🗺️ Ir al mapa ahora →", key="cifac_ir_mapa", use_container_width=True):
+                    st.session_state.mf_nav = "📍 Mapa"
+                    st.rerun()
+            if acceso_test or st.session_state.cifac_step == "orientacion":
+                if st.button("🧭 Iniciar el test ahora →", key="cifac_ir_test", use_container_width=True):
+                    st.session_state.mf_nav = "📊 Mis intereses"
+                    st.rerun()
         if st.button("🗑️ Borrar conversación", key="clear_cifac_chat"):
             st.session_state.assistant_history = []
             st.session_state.cifac_step = "inicio"
