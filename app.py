@@ -22,11 +22,7 @@ def load_data():
 df = load_data()
 # La hoja de Google Drive es la fuente principal para los registros que contiene.
 # Si no está publicada para lectura, se conserva el respaldo local.
-SHEET_CSV_URL = (
-    "https://docs.google.com/spreadsheets/d/"
-    "1q_cbSMlqlku0ph_ffSWulMv26ow5mgTTOIcfyI_uDtc/"
-    "export?format=csv&gid=2132573097"
-)
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqkZDRlfoNYwLpzqnMi9AeVI-Y2stohIpvKVL2hr_Gy4Gp3Ay_gaOEvTNDDuDgVL1sypWyRw5EUX8M/pub?gid=2132573097&single=true&output=csv"
 @st.cache_data(ttl=300, show_spinner=False)
 def load_google_sheet():
     with urlopen(SHEET_CSV_URL, timeout=12) as respuesta:
