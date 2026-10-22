@@ -977,9 +977,9 @@ with tab_search:
                     with st.expander("ℹ️ Información importante"):
                         st.write(observacion)
 with tab_test:
-    st.subheader("🧭 Descubrí tus intereses")
-    st.write("Respondé según lo que te gustaría hacer. No hay respuestas correctas.")
-    st.info("Actividad exploratoria, no es un test vocacional validado.")
+    st.subheader("🧭 Explorá tus intereses")
+    st.write("Conocé tus preferencias a través de actividades vinculadas con distintos campos de estudio y trabajo.")
+    st.caption("Este cuestionario es una herramienta educativa de exploración, no un test psicométrico validado ni un diagnóstico vocacional.")
     areas = {
         "Tecnología e informática": ["Crear una aplicación que resuelva un problema cotidiano.", "Investigar por qué un dispositivo no funciona.", "Encontrar patrones en un conjunto de datos."],
         "Salud y bienestar": ["Aprender cómo funciona el cuerpo humano.", "Participar en actividades de prevención y cuidado.", "Escuchar y acompañar a alguien que necesita ayuda."],
@@ -992,20 +992,66 @@ with tab_test:
     }
     questions = [(area, i, question) for area, items in areas.items() for i, question in enumerate(items)]
     questions = sorted(questions, key=lambda item: (item[1] * 11 + list(areas).index(item[0]) * 5) % 24)
-    options = ["Mucho", "Bastante", "Poco", "Nada", "No estoy seguro/a"]
-    with st.form("intereses_nuevo"):
-        answers = {}
-        for number, (area, index, question) in enumerate(questions, 1):
-            answers[(area, index)] = st.radio(
-                f"{number}. ¿Qué tanto te gustaría...? {question}",
-                options, index=None, key=f"interes_{number}"
-            )
-        sent = st.form_submit_button("✨ ¡Descubrir mi perfil vocacional!", type="primary", use_container_width=True)
-    if sent:
+    options = ["No me interesa", "Me interesa poco", "No estoy seguro/a", "Me interesa", "Me interesa mucho"]
+    if "intereses_paso" not in st.session_state:
+        st.session_state.intereses_paso = 0
+    if "intereses_respuestas" not in st.session_state:
+        st.session_state.intereses_respuestas = {}
+    if "intereses_finalizado" not in st.session_state:
+        st.session_state.intereses_finalizado = False
+
+    if st.session_state.intereses_finalizado:
+        if st.button("↻ Volver a realizar la exploración", key="reiniciar_intereses"):
+            st.session_state.intereses_paso = 0
+            st.session_state.intereses_respuestas = {}
+            st.session_state.intereses_finalizado = False
+            st.rerun()
+    else:
+        st.info("**Indicaciones:** Leé cada actividad e indicá cuánto te interesaría realizarla, aunque nunca la hayas hecho. No hay respuestas correctas o incorrectas. Respondé según tus preferencias.")
+        paso = st.session_state.intereses_paso
+        area_actual, indice_actual, actividad = questions[paso]
+        cantidad = len(questions)
+        st.markdown(
+            """<style>
+            div[data-testid="stProgress"] > div {height:11px;border-radius:20px}
+            div[role="radiogroup"] label {border:1px solid #d8e3dc;border-radius:13px;padding:12px 16px;margin:4px 0;background:#f8faf8}
+            div[role="radiogroup"] label:has(input:checked) {border-color:#246954;background:#e7f3ed}
+            </style>""", unsafe_allow_html=True)
+        st.markdown(f"**Pregunta {paso + 1} de {cantidad}**")
+        st.progress((paso + 1) / cantidad)
+        st.markdown(f"### {actividad}")
+        st.caption("¿Cuál es tu nivel de interés en realizar esta actividad?")
+        clave = f"intereses_opcion_{paso}"
+        if clave not in st.session_state and paso in st.session_state.intereses_respuestas:
+            st.session_state[clave] = st.session_state.intereses_respuestas[paso]
+        seleccion = st.radio(
+            "Seleccioná una respuesta", options, index=None, key=clave, label_visibility="collapsed"
+        )
+        if seleccion is not None:
+            st.session_state.intereses_respuestas[paso] = seleccion
+        anterior, siguiente = st.columns(2)
+        with anterior:
+            if st.button("← Anterior", disabled=paso == 0, use_container_width=True, key="intereses_anterior"):
+                st.session_state.intereses_paso -= 1
+                st.rerun()
+        with siguiente:
+            texto_boton = "Ver mis resultados ✓" if paso == cantidad - 1 else "Siguiente →"
+            if st.button(texto_boton, type="primary", use_container_width=True, key="intereses_siguiente"):
+                if seleccion is None:
+                    st.warning("Seleccioná una opción para continuar.")
+                elif paso < cantidad - 1:
+                    st.session_state.intereses_paso += 1
+                    st.rerun()
+                else:
+                    st.session_state.intereses_finalizado = True
+                    st.rerun()
+    if st.session_state.intereses_finalizado:
+        answers = {(area, i): st.session_state.intereses_respuestas.get(paso)
+                   for paso, (area, i, _) in enumerate(questions)}
         if any(answer is None for answer in answers.values()):
             st.warning("Respondé todas las preguntas para ver tus resultados.")
         else:
-            values = {"Mucho": 4, "Bastante": 3, "Poco": 2, "Nada": 1}
+            values = {"Me interesa mucho": 5, "Me interesa": 4, "Me interesa poco": 2, "No me interesa": 1}
             scores = {}
             uncertainty = {}
             for area, items in areas.items():
