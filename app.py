@@ -1060,7 +1060,7 @@ if seleccion_nav=="📊 Mis intereses":
         "Ingeniería, industria y construcción": [
             "¿Te gustaría diseñar edificios, estructuras, máquinas o procesos de producción?",
             "¿Te interesaría descubrir cómo se fabrican productos y mejorar su elaboración?",
-            "¿Te gustaría diseñar o mejorar máquinas, herramientas o procesos que se utilizan en la industria?"
+            "¿Te gustaría resolver problemas relacionados con materiales, energía o construcciones?"
         ],
         "Ciencias exactas": [
             "¿Disfrutarías resolver desafíos que requieren cálculos y razonamiento lógico?",
@@ -1222,9 +1222,18 @@ if seleccion_nav=="📊 Mis intereses":
             if orden:
                 destacadas = orden[:3]
                 st.write("Estas son las áreas en las que expresaste mayor interés. Un empate no significa que una sea más importante que otra.")
+                fondos = ["#F0E8FF", "#E5F5F4", "#FFF1DB"]
+                acentos = ["#6D35B5", "#087C79", "#A66312"]
                 for pos, area in enumerate(destacadas, 1):
-                    st.markdown(f"**{pos}. {area}**")
-                    st.caption(f"Interés promedio: {resultados[area]:.1f} de 4 · Respuestas de incertidumbre: {incertidumbre[area]}")
+                    empate = pos > 1 and resultados[area] == resultados[destacadas[pos - 2]]
+                    titulo = f"{pos}° área destacada · mismo interés que la anterior" if empate else f"{pos}° lugar"
+                    st.markdown(
+                        f"""<div style="background:{fondos[pos-1]};border-left:6px solid {acentos[pos-1]};border-radius:14px;padding:20px 24px;margin:12px 0;">
+                        <div style="color:{acentos[pos-1]};font-size:21px;font-weight:800;">{titulo}</div>
+                        <div style="color:#20242c;font-size:23px;font-weight:750;margin:5px 0 9px;">{area}</div>
+                        <div style="color:#414852;font-size:15px;">Interés promedio: {resultados[area]:.1f} de 4 · Respuestas de incertidumbre: {incertidumbre[area]}</div>
+                        </div>""", unsafe_allow_html=True
+                    )
                 st.markdown("### 🎓 Carreras para seguir explorando")
                 st.caption("Las recomendaciones se vinculan por el nombre y campo de las carreras disponibles en la base. Una carrera puede aparecer en varias áreas. Verificá la oferta, las sedes y los requisitos de ingreso.")
                 for area in destacadas:
