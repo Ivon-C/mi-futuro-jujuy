@@ -464,6 +464,29 @@ def visible_value(value):
     return text
 
 
+def duracion_visible(row):
+    """Usa la duración registrada y completa las reglas conocidas de los IES provinciales."""
+    registrada = visible_value(row.get("Duración", ""))
+    if registrada:
+        return registrada
+    institucion = normalize(row.get("Institución", ""))
+    match = __import__("re").search(r"(?:\\bies\\b|instituto de educacion superior)\\s*(?:n[.°ºo]*\\s*)?(\\d+)\\b", institucion)
+    if not match:
+        return ""
+    numero = match.group(1)
+    titulo = normalize(row.get("Carrera / título", ""))
+    tipo = normalize(row.get("Tipo de formación", ""))
+    if "tecnicatura" in titulo or "tecnicatura" in tipo:
+        return "3 años"
+    if "profesorado" in titulo or "profesorado" in tipo:
+        if numero == "10" and "ciencias de la educacion" in titulo:
+            return "5 años"
+        if numero == "5" and "educacion superior" in titulo:
+            return "5 años"
+        return "4 años"
+    return ""
+
+
 def career_kind(row):
     title = normalize(row["Carrera / título"])
     formation = normalize(row["Tipo de formación"])
@@ -1057,6 +1080,9 @@ if seleccion_nav=="📍 Mapa":
                     with st.container(border=True):
                         st.markdown(f"**🎓 {item[career]}**")
                         st.caption(f"📚 Tipo de formación: {kind[:-1] if kind != 'Otras formaciones' else 'Otra formación'}")
+                        duracion = duracion_visible(item)
+                        if duracion:
+                            st.caption(f"⏳ Duración: {duracion}")
                         institucion = visible_value(item.get("Institución", ""))
                         if institucion:
                             st.caption(f"🏫 {institucion}")
@@ -1106,6 +1132,9 @@ if seleccion_nav=="🎓 Buscá carreras":
             sede = str(carrera_row.get("Sede de cursado confirmada", "")).strip()
             with st.container(border=True):
                 st.markdown(f"#### 🎓 {nombre}")
+                duracion = duracion_visible(carrera_row)
+                if duracion:
+                    st.write(f"⏳ **Duración:** {duracion}")
                 if formacion:
                     st.caption(f"📘 {formacion}" + (f"  ·  {area}" if area else ""))
                 st.write(f"🏫 **Institución:** {institucion}")
