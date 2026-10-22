@@ -766,7 +766,27 @@ if seleccion_nav=="🏠 Inicio":
                 st.rerun()
     st.markdown('<div class="mf-footer">🎓 Oferta educativa de Jujuy &nbsp; · &nbsp; 🛡️ Información orientativa &nbsp; · &nbsp; 💙 Tu futuro importa</div>',unsafe_allow_html=True)
 
-if seleccion_nav in ("📍 Mapa","🧭 Explorá"):
+if seleccion_nav=="🧭 Explorá":
+    st.header("🧭 Explorá áreas de estudio")
+    st.write("Conocé los distintos campos de formación y descubrí cuáles despiertan tu curiosidad.")
+    campos={
+        "💻 Tecnología e informática":"Programación, análisis de datos, sistemas y soluciones digitales.",
+        "⚕️ Salud y bienestar":"Cuidado de la salud, prevención y acompañamiento a las personas.",
+        "📚 Educación":"Enseñanza, aprendizaje, formación docente e inclusión.",
+        "🏛️ Sociedad y humanidades":"Historia, cultura, filosofía, comunicación y vida social.",
+        "🎨 Arte y comunicación":"Expresión artística, diseño, producción y comunicación.",
+        "🌿 Ambiente y producción":"Naturaleza, sustentabilidad, producción y territorio.",
+        "📊 Administración y economía":"Organización, gestión, finanzas y emprendimientos.",
+        "🧳 Turismo y servicios":"Patrimonio, viajes, hospitalidad y experiencias culturales."
+    }
+    for nombre,descripcion in campos.items():
+        with st.expander(nombre):
+            st.write(descripcion)
+    if st.button("Descubrir mis intereses →",type="primary",key="explora_a_intereses"):
+        st.session_state.mf_nav="📊 Mis intereses"
+        st.rerun()
+
+if seleccion_nav=="📍 Mapa":
     st.subheader("🗺️ Mapa interactivo de Jujuy por departamento")
     st.caption("Seleccioná un departamento en el mapa de colores para conocer las localidades y carreras registradas.")
     dept_towns = {
