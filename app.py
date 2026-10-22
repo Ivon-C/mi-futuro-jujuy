@@ -767,27 +767,27 @@ if seleccion_nav=="🏠 Inicio":
     st.markdown('<div class="mf-footer">🎓 Oferta educativa de Jujuy &nbsp; · &nbsp; 🛡️ Información orientativa &nbsp; · &nbsp; 💙 Tu futuro importa</div>',unsafe_allow_html=True)
 
 if seleccion_nav=="🧭 Explorá":
-    st.header("🧭 Explorá áreas de estudio")
-    st.write("Conocé algunos campos de formación y descubrí qué actividades, conocimientos y profesiones se relacionan con cada uno.")
-    campos={
-        "💻 Tecnología e informática":"Programación, análisis de datos, sistemas y soluciones digitales.",
-        "⚕️ Salud y bienestar":"Cuidado de la salud, prevención y acompañamiento a las personas.",
-        "📚 Educación":"Enseñanza, aprendizaje, formación docente e inclusión.",
-        "🏛️ Sociedad y humanidades":"Historia, cultura, filosofía, comunicación y vida social.",
-        "🎨 Arte y comunicación":"Expresión artística, diseño, producción y comunicación.",
-        "🌿 Ambiente y producción":"Naturaleza, sustentabilidad, producción y territorio.",
-        "📊 Administración y economía":"Organización, gestión, finanzas y emprendimientos.",
-        "🧳 Turismo y servicios":"Patrimonio, viajes, hospitalidad y experiencias culturales."
-    }
-    for nombre,descripcion in campos.items():
-        with st.expander(nombre):
-            st.write(descripcion)
+    st.header("🧭 Explorá Jujuy y sus oportunidades")
+    st.write("Seleccioná un departamento en el mapa interactivo para descubrir sus localidades y las opciones de formación disponibles. También podés conocer diferentes áreas de estudio.")
+    with st.expander("📚 Conocé las áreas de estudio"):
+        campos={
+            "💻 Tecnología e informática":"Programación, análisis de datos, sistemas y soluciones digitales.",
+            "⚕️ Salud y bienestar":"Cuidado de la salud, prevención y acompañamiento a las personas.",
+            "📚 Educación":"Enseñanza, aprendizaje, formación docente e inclusión.",
+            "🏛️ Sociedad y humanidades":"Historia, cultura, filosofía, comunicación y vida social.",
+            "🎨 Arte y comunicación":"Expresión artística, diseño, producción y comunicación.",
+            "🌿 Ambiente y producción":"Naturaleza, sustentabilidad, producción y territorio.",
+            "📊 Administración y economía":"Organización, gestión, finanzas y emprendimientos.",
+            "🧳 Turismo y servicios":"Patrimonio, viajes, hospitalidad y experiencias culturales."
+        }
+        for nombre,descripcion in campos.items():
+            st.markdown(f"**{nombre}:** {descripcion}")
     if st.button("Descubrir mis intereses →",type="primary",key="explora_a_intereses"):
         st.session_state.mf_nav="📊 Mis intereses"
         st.rerun()
 
-if seleccion_nav=="📍 Mapa":
-    st.subheader("Explorá Jujuy por departamento")
+if seleccion_nav in ("📍 Mapa","🧭 Explorá"):
+    st.subheader("🗺️ Mapa interactivo de Jujuy por departamento")
     st.caption("Seleccioná un departamento en el mapa de colores para conocer las localidades y carreras registradas.")
     dept_towns = {
         "COCHINOCA": ["Abra Pampa"],
