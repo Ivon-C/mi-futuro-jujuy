@@ -795,7 +795,7 @@ if seleccion_nav=="🏠 Inicio":
     cols=st.columns(4,gap="medium")
     for col,(numero,icono,titulo,descripcion,boton,destino,fondo,color) in zip(cols,tarjetas):
         with col:
-            st.markdown(f'<div class="mf-card" style="background:{fondo}"><span style="font-weight:800;color:{color}">{numero}</span><div class="mf-icon">{icono}</div><h3>{titulo}</h3><p>{descripcion}</p></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="mf-card" style="background:{fondo}"><span style="display:inline-flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:50%;background:{color};color:white;font-size:1.22rem;font-weight:850;letter-spacing:.5px;box-shadow:0 3px 8px #18334c1a">{numero}</span><div class="mf-icon">{icono}</div><h3>{titulo}</h3><p>{descripcion}</p></div>',unsafe_allow_html=True)
             if st.button(boton+" →",key="ir_"+numero,use_container_width=True,type="primary"):
                 st.session_state.mf_nav=destino
                 st.rerun()
