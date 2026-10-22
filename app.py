@@ -1062,7 +1062,7 @@ if seleccion_nav=="📊 Mis intereses":
     }
     questions = [(area, i, question) for area, items in areas.items() for i, question in enumerate(items)]
     questions = sorted(questions, key=lambda item: (item[1] * 11 + list(areas).index(item[0]) * 5) % 24)
-    options = ["No me interesa", "Me interesa poco", "No estoy seguro/a", "Me interesa", "Me interesa mucho"]
+    options = ["Me interesa mucho", "Me interesa poco", "Nada", "No estoy seguro/a"]
     if "intereses_paso" not in st.session_state:
         st.session_state.intereses_paso = 0
     if "intereses_respuestas" not in st.session_state:
@@ -1121,7 +1121,7 @@ if seleccion_nav=="📊 Mis intereses":
         if any(answer is None for answer in answers.values()):
             st.warning("Respondé todas las preguntas para ver tus resultados.")
         else:
-            values = {"Me interesa mucho": 5, "Me interesa": 4, "Me interesa poco": 2, "No me interesa": 1}
+            values = {"Me interesa mucho": 5, "Me interesa": 4, "Me interesa poco": 2, "Nada": 1}
             scores = {}
             uncertainty = {}
             for area, items in areas.items():
