@@ -770,14 +770,20 @@ if seleccion_nav=="🧭 Explorá":
     st.header("🧭 Explorá áreas de estudio")
     st.write("Conocé los distintos campos de formación y descubrí cuáles despiertan tu curiosidad.")
     campos={
-        "💻 Tecnología e informática":"Programación, análisis de datos, sistemas y soluciones digitales.",
-        "⚕️ Salud y bienestar":"Cuidado de la salud, prevención y acompañamiento a las personas.",
-        "📚 Educación":"Enseñanza, aprendizaje, formación docente e inclusión.",
-        "🏛️ Sociedad y humanidades":"Historia, cultura, filosofía, comunicación y vida social.",
-        "🎨 Arte y comunicación":"Expresión artística, diseño, producción y comunicación.",
-        "🌿 Ambiente y producción":"Naturaleza, sustentabilidad, producción y territorio.",
-        "📊 Administración y economía":"Organización, gestión, finanzas y emprendimientos.",
-        "🧳 Turismo y servicios":"Patrimonio, viajes, hospitalidad y experiencias culturales."
+        "💻 Tecnología e informática":"Programación, ingeniería informática, software, sistemas, ciencia de datos e inteligencia artificial.",
+        "🏗️ Ingeniería, industria y construcción":"Diseño de estructuras, procesos industriales, materiales y soluciones técnicas.",
+        "📐 Ciencias exactas":"Matemática, física, química, modelos y resolución de problemas científicos.",
+        "🌿 Ciencias naturales y ambiente":"Biología, geología, ecosistemas, biodiversidad y cuidado ambiental.",
+        "🌾 Producción agropecuaria y alimentaria":"Agricultura, ganadería, actividad forestal, producción y calidad de alimentos.",
+        "🩺 Salud y bienestar":"Cuidado de la salud, prevención y acompañamiento a las personas.",
+        "📚 Educación y enseñanza":"Formación docente, enseñanza, aprendizaje, inclusión y profesorados de diferentes disciplinas.",
+        "🗣️ Lenguas, literatura y escritura":"Inglés, francés, portugués, letras, lectura, escritura y edición.",
+        "🏛️ Filosofía, historia y antropología":"Pensamiento filosófico, procesos históricos, culturas y formas de vida.",
+        "⚖️ Derecho, política y sociedad":"Leyes, Estado, políticas públicas, trabajo social y acompañamiento a niños, adolescentes y familias.",
+        "📢 Comunicación y medios":"Periodismo, comunicación social, medios digitales y producción de contenidos.",
+        "🎨 Arte, diseño y creatividad":"Artes visuales, música, teatro, danza y diseño creativo.",
+        "📊 Economía, administración y gestión":"Organización, gestión, finanzas, economía y emprendimientos.",
+        "🧳 Turismo, gastronomía y patrimonio":"Turismo, patrimonio cultural, cocina regional y experiencias para visitantes."
     }
     for nombre,descripcion in campos.items():
         with st.expander(nombre):
