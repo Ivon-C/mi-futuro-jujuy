@@ -752,15 +752,15 @@ div[data-testid="stSegmentedControl"] {justify-content:flex-end}
 .mf-map {display:inline-block;width:70%;height:285px;background:linear-gradient(165deg,#2388ba 0 19%,#e8c398 20% 35%,#b45638 36% 52%,#4a9c78 53% 67%,#f4e2b8 68% 80%,#c06e3d 81%);clip-path:polygon(33% 0,43% 6%,55% 4%,61% 16%,55% 30%,67% 39%,71% 50%,93% 55%,97% 71%,87% 85%,76% 86%,64% 100%,49% 90%,43% 74%,27% 66%,19% 54%,25% 40%,21% 27%,28% 15%);filter:drop-shadow(0 4px 4px #163f69)}
 .mf-art-title {color:#0d385e;font-weight:800;font-size:1.1rem;margin-top:5px}
 .mf-art-caption {color:#35617a;font-size:.92rem;margin-top:7px}
-.mf-card {min-height:196px;border-radius:20px;padding:21px 20px 10px;margin-bottom:4px}
-.mf-card h3 {font-size:1.45rem;margin:9px 0;color:#0b2d54}
+.mf-card {min-height:255px;border-radius:22px;padding:22px 22px 12px;margin-bottom:4px}
+.mf-card h3 {font-size:1.55rem;margin:12px 0;color:#0b2d54;font-weight:800}
 .mf-card p {color:#274766;font-size:1rem;line-height:1.45}
-.mf-icon {font-size:2.3rem}
-.mf-footer {border-top:1px solid #d9e4eb;padding-top:22px;margin-top:25px;color:#34516d;text-align:center}
+.mf-icon {font-size:2.7rem;line-height:1.5}
+.mf-footer {border-top:1px solid #d9e4eb;padding-top:22px;margin-top:25px;color:#34516d;text-align:center}.mf-hero-title em {text-decoration:underline;text-decoration-color:#ffbd13;text-decoration-thickness:5px;text-underline-offset:9px}div[data-testid="stImage"] img {border-radius:20px}
 @media(max-width:700px){.mf-hero-title{letter-spacing:-1px}.mf-art{min-height:240px}.mf-map{height:190px}}
 </style>
 """,unsafe_allow_html=True)
-st.markdown('<div class="mf-brand">◭ Mi Futuro <em>Jujuy</em></div>',unsafe_allow_html=True)
+st.markdown('<div class="mf-brand">🏔️ Mi Futuro <em>Jujuy</em> <span style="font-size:.67rem;letter-spacing:2px;font-weight:600;color:#173c68"> EXPLORÁ · CONOCÉ · ELEGÍ</span></div>',unsafe_allow_html=True)
 opciones_nav=["🏠 Inicio","🧭 Explorá","📊 Mis intereses","🎓 Buscá carreras","📍 Mapa"]
 if "mf_nav" not in st.session_state:
     st.session_state.mf_nav="🏠 Inicio"
@@ -773,13 +773,18 @@ if seleccion_nav=="🏠 Inicio":
     with izquierda:
         st.markdown('<div class="mf-eyebrow">ORIENTACIÓN EDUCATIVA EN JUJUY</div><div class="mf-hero-title">Tu futuro también<br>se construye <em>acá</em></div><p class="mf-intro">Un espacio para explorar tus intereses, conocer las carreras e instituciones de Jujuy y descubrir las oportunidades que se ajustan a vos.</p>',unsafe_allow_html=True)
     with derecha:
-        st.markdown('<div class="mf-art"><div class="mf-map"></div><div class="mf-art-title">JUJUY · MUCHOS CAMINOS PARA ELEGIR</div><div class="mf-art-caption">⚕ Salud &nbsp; ⚙ Ingeniería &nbsp; 🎨 Arte &nbsp; ⚖ Derecho &nbsp; 📚 Educación &nbsp; 💻 Tecnología</div></div>',unsafe_allow_html=True)
+        # La imagen se carga como recurso local para mantener los botones y textos accesibles.
+        portada_imagen = Path(__file__).with_name("jujuy_portada.webp")
+        if portada_imagen.exists():
+            st.image(str(portada_imagen), use_container_width=True)
+        else:
+            st.markdown('<div class="mf-art"><div class="mf-map"></div></div>', unsafe_allow_html=True)
     st.write("")
     tarjetas=[
-        ("01","🧭","Explorá","Conocé las áreas de estudio y los distintos campos de formación.","Explorar áreas","🧭 Explorá","#e9faf5","#006c70"),
-        ("02","📊","Mis intereses","Respondé un cuestionario para reconocer tus preferencias.","Iniciar cuestionario","📊 Mis intereses","#e9f3ff","#0961d5"),
-        ("03","🎓","Buscá carreras","Conocé las carreras, instituciones y sedes disponibles en Jujuy.","Buscar carreras","🎓 Buscá carreras","#fff6df","#b17b00"),
-        ("04","📍","Mapa de instituciones","Ubicá las instituciones y descubrí dónde estudiar.","Ver mapa","📍 Mapa","#fff0f4","#bf2f62")
+        ("01","🧭","Explorá","Descubrí los distintos campos de formación, actividades y perfiles profesionales.","Explorar áreas","🧭 Explorá","#e8f9f5","#007b80"),
+        ("02","📊","Mis intereses","Respondé un cuestionario y descubrí cuáles son tus áreas de mayor interés.","Iniciar test","📊 Mis intereses","#e6f2ff","#0961d5"),
+        ("03","🎓","Buscá carreras","Explorá carreras, instituciones y sedes disponibles en Jujuy. Usá filtros según tus intereses.","Buscar carreras","🎓 Buscá carreras","#fff6df","#b17b00"),
+        ("04","📍","Mapa de instituciones","Ubicá las instituciones de educación superior de Jujuy y conocé sus sedes.","Ver mapa","📍 Mapa","#fff0f4","#bf2f62")
     ]
     cols=st.columns(4,gap="medium")
     for col,(numero,icono,titulo,descripcion,boton,destino,fondo,color) in zip(cols,tarjetas):
