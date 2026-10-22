@@ -1047,134 +1047,202 @@ if seleccion_nav=="🎓 Buscá carreras":
                     with st.expander("ℹ️ Información importante"):
                         st.write(observacion)
 if seleccion_nav=="📊 Mis intereses":
-    st.subheader("🧭 Explorá tus intereses")
-    st.write("Conocé tus preferencias a través de actividades vinculadas con distintos campos de estudio y trabajo.")
-    st.caption("Este cuestionario es una herramienta educativa de exploración, no un test psicométrico validado ni un diagnóstico vocacional.")
-    areas = {
-        "Tecnología e informática": ["Crear una aplicación que resuelva un problema cotidiano.", "Investigar por qué un dispositivo no funciona.", "Encontrar patrones en un conjunto de datos."],
-        "Salud y bienestar": ["Aprender cómo funciona el cuerpo humano.", "Participar en actividades de prevención y cuidado.", "Escuchar y acompañar a alguien que necesita ayuda."],
-        "Educación": ["Explicar un tema de distintas maneras.", "Preparar una actividad para que otras personas aprendan.", "Ayudar a alguien a superar una dificultad de aprendizaje."],
-        "Sociedad y humanidades": ["Investigar una historia de tu comunidad.", "Debatir soluciones para un problema social.", "Comprender cómo cambian las costumbres de una sociedad."],
-        "Arte y comunicación": ["Crear un video para contar una historia.", "Diseñar imágenes para comunicar una idea.", "Inventar una producción musical, visual o escrita."],
-        "Ambiente y producción": ["Investigar cómo proteger un ecosistema.", "Conocer cómo se producen los alimentos.", "Proponer soluciones para reducir residuos."],
-        "Administración y economía": ["Organizar los recursos de un proyecto.", "Planificar un pequeño emprendimiento.", "Comparar presupuestos para tomar decisiones."],
-        "Turismo y servicios": ["Diseñar un recorrido para conocer Jujuy.", "Organizar una actividad para recibir visitantes.", "Dar a conocer las tradiciones de una localidad."]
-    }
-    questions = [(area, i, question) for area, items in areas.items() for i, question in enumerate(items)]
-    questions = sorted(questions, key=lambda item: (item[1] * 11 + list(areas).index(item[0]) * 5) % 24)
-    options = ["Me interesa mucho", "Me interesa poco", "Nada", "No estoy seguro/a"]
-    if "intereses_paso" not in st.session_state:
-        st.session_state.intereses_paso = 0
-    if "intereses_respuestas" not in st.session_state:
-        st.session_state.intereses_respuestas = {}
-    if "intereses_finalizado" not in st.session_state:
-        st.session_state.intereses_finalizado = False
+    st.subheader("🧭 Descubrí tus intereses")
+    st.write("Explorá actividades vinculadas con distintas áreas de estudio y trabajo. No necesitás saber hacerlas: respondé según lo que te gustaría conocer o realizar.")
+    st.caption("Cuestionario educativo exploratorio. No es una prueba psicométrica validada ni determina qué carrera debés elegir.")
 
+    areas = {
+        "Tecnología e informática": [
+            "¿Te gustaría crear aplicaciones, páginas web o programas que resuelvan problemas?",
+            "¿Te interesaría comprender cómo funcionan las computadoras y los sistemas informáticos?",
+            "¿Te gustaría utilizar datos o inteligencia artificial para encontrar soluciones?"
+        ],
+        "Ingeniería, industria y construcción": [
+            "¿Te gustaría diseñar edificios, estructuras, máquinas o procesos de producción?",
+            "¿Te interesaría descubrir cómo se fabrican productos y mejorar su elaboración?",
+            "¿Te gustaría resolver problemas relacionados con materiales, energía o construcciones?"
+        ],
+        "Ciencias exactas": [
+            "¿Disfrutarías resolver desafíos que requieren cálculos y razonamiento lógico?",
+            "¿Te gustaría investigar cómo se comportan la materia y la energía?",
+            "¿Te interesaría utilizar fórmulas y modelos para explicar situaciones reales?"
+        ],
+        "Ciencias naturales y ambiente": [
+            "¿Te gustaría investigar cómo funcionan los seres vivos y los ecosistemas?",
+            "¿Te interesaría estudiar problemas ambientales y buscar soluciones?",
+            "¿Te gustaría realizar observaciones o experimentos para comprender fenómenos naturales?"
+        ],
+        "Producción agropecuaria y alimentaria": [
+            "¿Te interesaría conocer cómo se cultivan y producen los alimentos?",
+            "¿Te gustaría mejorar actividades agrícolas, ganaderas o forestales?",
+            "¿Te interesaría investigar la calidad y elaboración de productos alimenticios?"
+        ],
+        "Salud y bienestar": [
+            "¿Te gustaría participar en actividades para prevenir enfermedades?",
+            "¿Te interesaría comprender cómo funciona el cuerpo humano?",
+            "¿Te gustaría acompañar a otras personas en el cuidado de su salud?"
+        ],
+        "Educación y enseñanza": [
+            "¿Te gustaría explicar un tema para ayudar a otra persona a comprenderlo?",
+            "¿Disfrutarías preparar actividades o materiales para enseñar?",
+            "¿Te interesaría buscar distintas maneras de acompañar el aprendizaje?"
+        ],
+        "Lenguas, literatura y escritura": [
+            "¿Te gustaría aprender inglés, francés, portugués u otros idiomas y conocer sus culturas?",
+            "¿Disfrutás leer, interpretar o escribir cuentos, poemas y otros textos?",
+            "¿Te interesaría investigar cómo funcionan las lenguas y cómo cambian?"
+        ],
+        "Filosofía, historia y antropología": [
+            "¿Te gustaría debatir preguntas sobre la libertad, la justicia o el sentido de la vida?",
+            "¿Te interesaría investigar acontecimientos del pasado y sus consecuencias actuales?",
+            "¿Te gustaría conocer cómo viven y piensan diferentes comunidades?"
+        ],
+        "Derecho, política y sociedad": [
+            "¿Te interesaría conocer las leyes y analizar cómo se aplican?",
+            "¿Te gustaría comprender cómo funciona el Estado y cómo se toman decisiones políticas?",
+            "¿Te interesaría participar en proyectos para mejorar la vida de una comunidad?"
+        ],
+        "Comunicación y medios": [
+            "¿Te gustaría investigar noticias y comunicar información a otras personas?",
+            "¿Te interesaría producir contenidos para radio, redes sociales o medios digitales?",
+            "¿Te gustaría planificar campañas para transmitir ideas o generar conciencia?"
+        ],
+        "Arte, diseño y creatividad": [
+            "¿Te gustaría crear dibujos, diseños, imágenes u otras producciones artísticas?",
+            "¿Disfrutarías participar en proyectos de música, teatro, danza o artes visuales?",
+            "¿Te interesaría utilizar herramientas digitales para expresar ideas creativamente?"
+        ],
+        "Economía, administración y gestión": [
+            "¿Te gustaría organizar los recursos y el presupuesto de un emprendimiento?",
+            "¿Te interesaría analizar cómo se producen y distribuyen los recursos económicos?",
+            "¿Disfrutarías planificar y coordinar las actividades de una organización?"
+        ],
+        "Turismo, gastronomía y patrimonio": [
+            "¿Te gustaría diseñar recorridos para dar a conocer lugares de Jujuy?",
+            "¿Te interesaría conocer y preparar comidas tradicionales de distintas regiones?",
+            "¿Disfrutarías organizar experiencias culturales o actividades para visitantes?"
+        ]
+    }
+
+    # Las áreas de afinidad no sustituyen el campo académico ni los requisitos de ingreso.
+    import unicodedata
+    def _normalizar_interes(texto):
+        return "".join(letra for letra in unicodedata.normalize("NFKD", str(texto).casefold()) if not unicodedata.combining(letra))
+
+    def _afinidades_carrera(nombre):
+        n = _normalizar_interes(nombre)
+        etiquetas = set()
+        def agregar(area, *palabras):
+            if any(p in n for p in palabras):
+                etiquetas.add(area)
+        agregar("Tecnología e informática", "informatica", "software", "programacion", "programador", "sistemas", "datos", "inteligencia artificial", "videojuegos")
+        agregar("Ingeniería, industria y construcción", "ingenieria quimica", "ingenieria industrial", "ingenieria de minas", "perforacion", "arquitectura", "construccion", "higiene y seguridad")
+        agregar("Ciencias exactas", "matematica", "fisica", "quimica", "geolog")
+        agregar("Ciencias naturales y ambiente", "biolog", "ambient", "forestal", "agronom", "geolog", "ecolog")
+        agregar("Producción agropecuaria y alimentaria", "agro", "alimento", "bromatolog", "granja", "forestal", "agricola", "cocina regional")
+        agregar("Salud y bienestar", "medicina", "enfermer", "salud")
+        agregar("Educación y enseñanza", "profesorado", "educacion", "docencia", "formacion docente")
+        agregar("Lenguas, literatura y escritura", "ingles", "frances", "portugues", "letras", "literatura", "editorial", "lengua")
+        agregar("Filosofía, historia y antropología", "filosofia", "historia", "antropolog")
+        agregar("Derecho, política y sociedad", "abogac", "derecho", "politic", "trabajo social", "ninez", "adolescencia", "familia")
+        agregar("Comunicación y medios", "comunicacion", "periodismo", "medios", "editorial")
+        agregar("Arte, diseño y creatividad", "arte", "artistic", "diseno", "musica", "teatro", "danza", "videojuegos")
+        agregar("Economía, administración y gestión", "administracion", "contador", "economia", "gestion empresarial")
+        agregar("Turismo, gastronomía y patrimonio", "turismo", "gastronom", "cocina", "cultura alimentaria")
+        if "ingenieria informatica" in n:
+            etiquetas.add("Ingeniería, industria y construcción")
+        if "economia politica" in n:
+            etiquetas.add("Derecho, política y sociedad")
+        if "tecnologia de los alimentos" in n or "tecnologias de los alimentos" in n:
+            etiquetas.add("Ingeniería, industria y construcción")
+        return etiquetas
+
+    questions = [(area, i, pregunta) for i in range(3) for area, preguntas in areas.items() for pregunta in [preguntas[i]]]
+    opciones = ["Me interesa mucho", "Me interesa bastante", "Me interesa poco", "No me interesa", "No estoy seguro/a"]
+    puntajes = {"Me interesa mucho": 4, "Me interesa bastante": 3, "Me interesa poco": 2, "No me interesa": 1}
+    version = "intereses_v2_14areas"
+    if st.session_state.get("intereses_version") != version:
+        st.session_state.intereses_version = version
+        st.session_state.intereses_paso = 0
+        st.session_state.intereses_respuestas = {}
+        st.session_state.intereses_finalizado = False
     if st.session_state.intereses_finalizado:
         if st.button("↻ Volver a realizar la exploración", key="reiniciar_intereses"):
             st.session_state.intereses_paso = 0
             st.session_state.intereses_respuestas = {}
             st.session_state.intereses_finalizado = False
+            for k in list(st.session_state.keys()):
+                if k.startswith("intereses_opcion_v2_"):
+                    del st.session_state[k]
             st.rerun()
     else:
-        st.info("**Indicaciones:** Leé cada actividad e indicá cuánto te interesaría realizarla, aunque nunca la hayas hecho. No hay respuestas correctas o incorrectas. Respondé según tus preferencias.")
+        st.info("Leé cada actividad e indicá cuánto te interesaría realizarla. No hay respuestas correctas o incorrectas. «No estoy seguro/a» no suma ni resta puntos.")
         paso = st.session_state.intereses_paso
         area_actual, indice_actual, actividad = questions[paso]
-        cantidad = len(questions)
-        st.markdown(
-            """<style>
-            div[data-testid="stProgress"] > div {height:11px;border-radius:20px}
-            div[role="radiogroup"] label {border:1px solid #d8e3dc;border-radius:13px;padding:12px 16px;margin:4px 0;background:#f8faf8}
-            div[role="radiogroup"] label:has(input:checked) {border-color:#246954;background:#e7f3ed}
-            </style>""", unsafe_allow_html=True)
-        st.markdown(f"**Pregunta {paso + 1} de {cantidad}**")
-        st.progress((paso + 1) / cantidad)
+        st.markdown(f"**Pregunta {paso + 1} de {len(questions)}**")
+        st.progress((paso + 1) / len(questions))
         st.markdown(f"### {actividad}")
-        st.caption("¿Cuál es tu nivel de interés en realizar esta actividad?")
-        clave = f"intereses_opcion_{paso}"
+        st.caption("¿Cuánto te interesaría realizar esta actividad?")
+        clave = f"intereses_opcion_v2_{paso}"
         if clave not in st.session_state and paso in st.session_state.intereses_respuestas:
             st.session_state[clave] = st.session_state.intereses_respuestas[paso]
-        seleccion = st.radio(
-            "Seleccioná una respuesta", options, index=None, key=clave, label_visibility="collapsed"
-        )
+        seleccion = st.radio("Seleccioná una respuesta", opciones, index=None, key=clave, label_visibility="collapsed")
         if seleccion is not None:
             st.session_state.intereses_respuestas[paso] = seleccion
-        anterior, siguiente = st.columns(2)
-        with anterior:
+        col_anterior, col_siguiente = st.columns(2)
+        with col_anterior:
             if st.button("← Anterior", disabled=paso == 0, use_container_width=True, key="intereses_anterior"):
                 st.session_state.intereses_paso -= 1
                 st.rerun()
-        with siguiente:
-            texto_boton = "Ver mis resultados ✓" if paso == cantidad - 1 else "Siguiente →"
-            if st.button(texto_boton, type="primary", use_container_width=True, key="intereses_siguiente"):
+        with col_siguiente:
+            texto = "Ver mis resultados ✓" if paso == len(questions) - 1 else "Siguiente →"
+            if st.button(texto, type="primary", use_container_width=True, key="intereses_siguiente"):
                 if seleccion is None:
                     st.warning("Seleccioná una opción para continuar.")
-                elif paso < cantidad - 1:
+                elif paso < len(questions) - 1:
                     st.session_state.intereses_paso += 1
                     st.rerun()
                 else:
                     st.session_state.intereses_finalizado = True
                     st.rerun()
     if st.session_state.intereses_finalizado:
-        answers = {(area, i): st.session_state.intereses_respuestas.get(paso)
-                   for paso, (area, i, _) in enumerate(questions)}
-        if any(answer is None for answer in answers.values()):
+        respuestas = {(area, i): st.session_state.intereses_respuestas.get(paso) for paso, (area, i, _) in enumerate(questions)}
+        if any(x is None for x in respuestas.values()):
             st.warning("Respondé todas las preguntas para ver tus resultados.")
         else:
-            values = {"Me interesa mucho": 5, "Me interesa": 4, "Me interesa poco": 2, "Nada": 1}
-            scores = {}
-            uncertainty = {}
-            for area, items in areas.items():
-                selected = [answers[(area, i)] for i in range(len(items))]
-                valid = [values[x] for x in selected if x in values]
-                scores[area] = round(sum(valid) / len(valid), 2) if valid else None
-                uncertainty[area] = selected.count("No estoy seguro/a")
-            ranked = sorted((area for area in areas if scores[area] is not None), key=lambda area: scores[area], reverse=True)
+            resultados = {}
+            incertidumbre = {}
+            for area, preguntas in areas.items():
+                elegidas = [respuestas[(area, i)] for i in range(len(preguntas))]
+                validas = [puntajes[x] for x in elegidas if x in puntajes]
+                resultados[area] = sum(validas) / len(validas) if validas else None
+                incertidumbre[area] = elegidas.count("No estoy seguro/a")
+            orden = sorted((a for a in areas if resultados[a] is not None), key=lambda a: resultados[a], reverse=True)
             st.subheader("🌟 Tu perfil exploratorio")
-            if ranked:
-                st.success("Áreas de mayor interés expresado: " + ", ".join(ranked[:3]))
-                st.markdown("### ✨ Tus 3 áreas de mayor interés")
-                descriptions = {
-                    "Tecnología e informática": "Te atrae crear soluciones digitales, explorar datos y resolver desafíos tecnológicos.",
-                    "Salud y bienestar": "Te interesa conocer el cuerpo humano, cuidar y acompañar a otras personas.",
-                    "Educación": "Te gusta compartir conocimientos y acompañar procesos de aprendizaje.",
-                    "Sociedad y humanidades": "Te interesa comprender la historia, la cultura y los problemas de la sociedad.",
-                    "Arte y comunicación": "Disfrutás crear, expresar ideas y comunicar de distintas maneras.",
-                    "Ambiente y producción": "Te interesa cuidar la naturaleza y explorar formas de producción sustentable.",
-                    "Administración y economía": "Te gusta organizar proyectos, recursos y emprendimientos.",
-                    "Turismo y servicios": "Te interesa compartir el patrimonio de Jujuy y organizar experiencias para visitantes."
-                }
-                backgrounds = ["#F0E8FF", "#E5F5F4", "#FFF1DB"]
-                accents = ["#6D35B5", "#087C79", "#A66312"]
-                top_three = ranked[:3]
-                for index, area in enumerate(top_three):
-                    number = index + 1
-                    tied_with_previous = index > 0 and scores[area] == scores[top_three[index - 1]]
-                    label = f"{number}° lugar" if not tied_with_previous else f"{number}° área destacada · mismo interés que la anterior"
-                    st.markdown(
-                        f"""<div style="background:{backgrounds[index]};border-left:6px solid {accents[index]};border-radius:14px;padding:20px 24px;margin:12px 0;">
-                        <div style="color:{accents[index]};font-size:22px;font-weight:800;">{label}</div>
-                        <div style="color:#20242c;font-size:23px;font-weight:750;margin:5px 0 9px;">{area}</div>
-                        <div style="color:#414852;font-size:16px;line-height:1.5;">{descriptions[area]}</div>
-                        </div>""",
-                        unsafe_allow_html=True
-                    )
-                st.caption("Se muestran solo tres áreas. Si hay puntajes iguales, el orden entre esas áreas no indica mayor interés. Este resultado es orientativo y no mide capacidades.")
-                st.markdown("### Carreras para seguir explorando")
-                for area in ranked[:3]:
+            if orden:
+                destacadas = orden[:3]
+                st.write("Estas son las áreas en las que expresaste mayor interés. Un empate no significa que una sea más importante que otra.")
+                for pos, area in enumerate(destacadas, 1):
+                    st.markdown(f"**{pos}. {area}**")
+                    st.caption(f"Interés promedio: {resultados[area]:.1f} de 4 · Respuestas de incertidumbre: {incertidumbre[area]}")
+                st.markdown("### 🎓 Carreras para seguir explorando")
+                st.caption("Las recomendaciones se vinculan por el nombre y campo de las carreras disponibles en la base. Una carrera puede aparecer en varias áreas. Verificá la oferta, las sedes y los requisitos de ingreso.")
+                for area in destacadas:
                     st.markdown(f"**{area}**")
-                    matches = df[df["Área principal preliminar"].astype(str).str.lower().str.contains(area.split(" ")[0].lower(), regex=False)]
-                    if matches.empty:
-                        st.caption("Explorá las carreras en la pestaña Carreras; no hay coincidencias directas en la clasificación preliminar.")
+                    coinciden = df[df[career].fillna("").astype(str).map(lambda nombre: area in _afinidades_carrera(nombre))]
+                    if coinciden.empty:
+                        st.caption("Todavía no hay carreras asociadas a esta área en los registros disponibles.")
                     else:
-                        display_cols = [career, town, "Institución"]
-                        st.dataframe(matches[display_cols].drop_duplicates(), hide_index=True, use_container_width=True)
+                        columnas = [career, town, "Institución"]
+                        coinciden = coinciden[columnas].drop_duplicates()
+                        st.dataframe(coinciden, hide_index=True, use_container_width=True)
+                st.caption("Algunos profesorados universitarios requieren estudios previos; no todas las carreras son de ingreso directo desde la secundaria.")
             else:
-                st.info("Elegiste 'No estoy seguro/a' en todas las preguntas. Podés explorar actividades antes de decidir.")
-            total_uncertain = sum(uncertainty.values())
-            if total_uncertain:
-                st.write(f"Marcaste 'No estoy seguro/a' en {total_uncertain} actividades. Es una oportunidad para conocerlas mejor.")
-            st.caption("Los registros de carreras son históricos y deben verificarse con cada institución. Este resultado no determina qué estudiar.")
+                st.info("Marcaste «No estoy seguro/a» en todas las actividades. Podés explorar las áreas antes de decidir.")
+            total = sum(incertidumbre.values())
+            if total:
+                st.write(f"Marcaste «No estoy seguro/a» en {total} actividades.")
+            st.caption("Este resultado es orientativo, no mide capacidades ni determina qué estudiar.")
 
 st.divider()
 st.caption("Mi Futuro Jujuy · Prototipo educativo · Información en revisión")
