@@ -766,7 +766,6 @@ if seleccion_nav=="🏠 Inicio":
                 st.rerun()
     st.markdown('<div class="mf-footer">🎓 Oferta educativa de Jujuy &nbsp; · &nbsp; 🛡️ Información orientativa &nbsp; · &nbsp; 💙 Tu futuro importa</div>',unsafe_allow_html=True)
 
-if seleccion_nav=="📍 Mapa":
 if seleccion_nav=="🧭 Explorá":
     st.header("🧭 Explorá áreas de estudio")
     st.write("Conocé algunos campos de formación y descubrí qué actividades, conocimientos y profesiones se relacionan con cada uno.")
