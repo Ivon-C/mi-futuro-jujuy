@@ -562,9 +562,19 @@ with st.container(key="cifac_launcher"):
             st.session_state.assistant_history = []
         with st.chat_message("assistant", avatar=cifac_avatar):
             st.markdown("👋 **¡Hola! Soy CIFAC, tu asistente de Mi Futuro Jujuy.**\n\nTe ayudo a buscar qué carreras figuran en nuestra base y dónde podrías estudiarlas. Podés preguntarme por una localidad, una carrera o un tema que te interese.\n\n**¿Qué te gustaría conocer?**")
-        for item in st.session_state.assistant_history:
+        for indice_mensaje, item in enumerate(st.session_state.assistant_history):
             with st.chat_message(item["role"]):
                 st.markdown(item["content"])
+                if item["role"] == "assistant" and indice_mensaje == len(st.session_state.assistant_history) - 1:
+                    contenido = item["content"]
+                    if "Iniciar el test ahora" in contenido:
+                        if st.button("🧭 Iniciar el test ahora →", key="cifac_test_en_respuesta", type="primary", use_container_width=True):
+                            st.session_state.mf_nav = "📊 Mis intereses"
+                            st.rerun()
+                    if "Ir al mapa ahora" in contenido:
+                        if st.button("🗺️ Ir al mapa ahora →", key="cifac_mapa_en_respuesta", type="primary", use_container_width=True):
+                            st.session_state.mf_nav = "📍 Mapa"
+                            st.rerun()
         if "cifac_step" not in st.session_state:
             st.session_state.cifac_step = "inicio"
         step = st.session_state.cifac_step
