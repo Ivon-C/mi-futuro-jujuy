@@ -18,6 +18,39 @@ if not FILE.exists():
 def load_data():
     return pd.read_excel(FILE, sheet_name="Carreras").fillna("")
 df = load_data()
+# La hoja de Google Drive es la fuente principal para los registros que contiene.
+# Si no está publicada para lectura, se conserva el respaldo local.
+SHEET_CSV_URL = (
+    "https://docs.google.com/spreadsheets/d/"
+    "1q_cbSMlqlku0ph_ffSWulMv26ow5mgTTOIcfyI_uDtc/"
+    "export?format=csv&gid=2132573097"
+)
+@st.cache_data(ttl=300, show_spinner=False)
+def load_google_sheet():
+    tabla = pd.read_csv(SHEET_CSV_URL, dtype=str, keep_default_na=False, timeout=12)
+    required = {"Institución", "Localidad", "Carrera", "Tipo de formación"}
+    if not required.issubset(tabla.columns):
+        raise ValueError("La hoja compartida no tiene las columnas esperadas.")
+    tabla = tabla[tabla["Carrera"].astype(str).str.strip().ne("")].copy()
+    tabla = tabla.rename(columns={
+        "Carrera": "Carrera / título",
+        "Área preliminar": "Área principal preliminar",
+        "Sede/dirección": "Sede de cursado confirmada",
+    })
+    return tabla
+
+try:
+    google_df = load_google_sheet()
+    # Reemplazar en el respaldo las instituciones presentes en Sheets.
+    # Así las bajas y correcciones en Drive no vuelven a aparecer desde Excel.
+    institutos_google = set(google_df["Institución"].astype(str).str.strip().str.casefold())
+    df = df[~df["Institución"].astype(str).str.strip().str.casefold().isin(institutos_google)].copy()
+    df = pd.concat([df, google_df], ignore_index=True)
+    st.caption("📄 Datos de Google Sheets · actualización automática aproximadamente cada 5 minutos.")
+except Exception:
+    st.caption("📄 Mostrando la copia de respaldo. Para activar la sincronización, publicá la pestaña Carreras como CSV en Google Sheets.")
+
+
 # El archivo histórico no acredita inscripciones abiertas. Excluir entradas con cierre explícito.
 df = df[~df.astype(str).apply(lambda col: col.str.contains("inscripciones no habilitadas|inscripciones cerradas|no admite ingresantes", case=False, regex=True)).any(axis=1)].copy()
 # Fuente: Facultad de Ingeniería UNJu. En Libertador se cursa solo primer año.
@@ -317,54 +350,56 @@ def sede_ies10(row):
 
 df["Sede de cursado confirmada"] = df.apply(sede_ies10, axis=1)
 
-# Mantener únicamente las tecnicaturas del IES N.º 10 confirmadas por la docente.
-# La oferta de profesorados del instituto se conserva sin cambios.
-tecnicaturas_ies10_vigentes = {
-    ("yuto", "tecnicatura superior en higiene y seguridad"),
-    ("libertador general san martin", "tecnicatura superior en cocina regional y cultura alimentaria"),
-    ("fraile pintado", "tecnicatura superior en niñez, adolescencia y familia"),
-}
-def es_tecnicatura_ies10_anterior(row):
-    inst = normalize(row.get("Institución", ""))
-    titulo = normalize(row.get("Carrera / título", ""))
-    localidad = normalize(row.get("Localidad", ""))
-    ies10 = ("ies 10" in inst or "instituto de educacion superior" in inst and
-             any(s in inst for s in ("n° 10", "n.º 10", "nº 10", "n°10", "nº10")))
-    es_tecnicatura = ("tecnicatura" in titulo or "tecnico superior" in titulo or
-                       "tecnica superior" in titulo or
-                       "tecnicatura" in normalize(row.get("Tipo de formación", "")))
-    return ies10 and es_tecnicatura and (localidad, titulo) not in tecnicaturas_ies10_vigentes
+# Aplicar correcciones históricas del IES 10 solo al respaldo cuando Drive no está disponible.
+if "google_df" not in locals():
+    # Mantener únicamente las tecnicaturas del IES N.º 10 confirmadas por la docente.
+    # La oferta de profesorados del instituto se conserva sin cambios.
+    tecnicaturas_ies10_vigentes = {
+        ("yuto", "tecnicatura superior en higiene y seguridad"),
+        ("libertador general san martin", "tecnicatura superior en cocina regional y cultura alimentaria"),
+        ("fraile pintado", "tecnicatura superior en niñez, adolescencia y familia"),
+    }
+    def es_tecnicatura_ies10_anterior(row):
+        inst = normalize(row.get("Institución", ""))
+        titulo = normalize(row.get("Carrera / título", ""))
+        localidad = normalize(row.get("Localidad", ""))
+        ies10 = ("ies 10" in inst or "instituto de educacion superior" in inst and
+                 any(s in inst for s in ("n° 10", "n.º 10", "nº 10", "n°10", "nº10")))
+        es_tecnicatura = ("tecnicatura" in titulo or "tecnico superior" in titulo or
+                           "tecnica superior" in titulo or
+                           "tecnicatura" in normalize(row.get("Tipo de formación", "")))
+        return ies10 and es_tecnicatura and (localidad, titulo) not in tecnicaturas_ies10_vigentes
 
-df = df[~df.apply(es_tecnicatura_ies10_anterior, axis=1)].copy()
+    df = df[~df.apply(es_tecnicatura_ies10_anterior, axis=1)].copy()
 
 
-# Actualización de oferta del IES N.º 10 informada el 21/10/2026.
-# Se aplica a los datos cargados, sin atribuir aperturas de inscripción no verificadas.
-oferta_ies10_actualizada = [
-    ("Yuto", "Tecnicatura Superior en Higiene y Seguridad", "Fundación Te Ayudamos Hermanos"),
-    ("Libertador General San Martín", "Tecnicatura Superior en Cocina Regional y Cultura Alimentaria", "Escuela Normal"),
-    ("Libertador General San Martín", "Enfermería", "Escuela Provincial de Comercio N.º 4"),
-    ("Fraile Pintado", "Tecnicatura Superior en Niñez, Adolescencia y Familia", "Escuela N.º 123 Manuel Belgrano"),
-]
-for localidad_nueva, titulo_nuevo, sede_nueva in oferta_ies10_actualizada:
-    coincidencia = (
-        (df["Localidad"].astype(str).str.strip().str.casefold() == localidad_nueva.casefold()) &
-        (df["Carrera / título"].astype(str).str.strip().str.casefold() == titulo_nuevo.casefold()) &
-        (df["Institución"].astype(str).str.contains(r"IES\s*(?:N[.º°]*\s*)?10|Instituto de Educación Superior.*10", case=False, regex=True, na=False))
-    )
-    if coincidencia.any():
-        df.loc[coincidencia, "Sede de cursado confirmada"] = sede_nueva
-    else:
-        nueva_oferta = {
-            "Institución": "IES N.º 10",
-            "Localidad": localidad_nueva,
-            "Carrera / título": titulo_nuevo,
-            "Tipo de formación": "Tecnicatura Superior" if titulo_nuevo.startswith("Tecnicatura") else "Enfermería (tipo de título por confirmar)",
-            "Área principal preliminar": "Salud y bienestar" if "Enfermería" in titulo_nuevo else "",
-            "Observación": "Oferta informada para esta sede. Consultar requisitos y período de inscripción con el IES N.º 10.",
-            "Sede de cursado confirmada": sede_nueva,
-        }
-        df = pd.concat([df, pd.DataFrame([nueva_oferta])], ignore_index=True)
+    # Actualización de oferta del IES N.º 10 informada el 21/10/2026.
+    # Se aplica a los datos cargados, sin atribuir aperturas de inscripción no verificadas.
+    oferta_ies10_actualizada = [
+        ("Yuto", "Tecnicatura Superior en Higiene y Seguridad", "Fundación Te Ayudamos Hermanos"),
+        ("Libertador General San Martín", "Tecnicatura Superior en Cocina Regional y Cultura Alimentaria", "Escuela Normal"),
+        ("Libertador General San Martín", "Enfermería", "Escuela Provincial de Comercio N.º 4"),
+        ("Fraile Pintado", "Tecnicatura Superior en Niñez, Adolescencia y Familia", "Escuela N.º 123 Manuel Belgrano"),
+    ]
+    for localidad_nueva, titulo_nuevo, sede_nueva in oferta_ies10_actualizada:
+        coincidencia = (
+            (df["Localidad"].astype(str).str.strip().str.casefold() == localidad_nueva.casefold()) &
+            (df["Carrera / título"].astype(str).str.strip().str.casefold() == titulo_nuevo.casefold()) &
+            (df["Institución"].astype(str).str.contains(r"IES\s*(?:N[.º°]*\s*)?10|Instituto de Educación Superior.*10", case=False, regex=True, na=False))
+        )
+        if coincidencia.any():
+            df.loc[coincidencia, "Sede de cursado confirmada"] = sede_nueva
+        else:
+            nueva_oferta = {
+                "Institución": "IES N.º 10",
+                "Localidad": localidad_nueva,
+                "Carrera / título": titulo_nuevo,
+                "Tipo de formación": "Tecnicatura Superior" if titulo_nuevo.startswith("Tecnicatura") else "Enfermería (tipo de título por confirmar)",
+                "Área principal preliminar": "Salud y bienestar" if "Enfermería" in titulo_nuevo else "",
+                "Observación": "Oferta informada para esta sede. Consultar requisitos y período de inscripción con el IES N.º 10.",
+                "Sede de cursado confirmada": sede_nueva,
+            }
+            df = pd.concat([df, pd.DataFrame([nueva_oferta])], ignore_index=True)
 
 
 
