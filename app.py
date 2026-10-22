@@ -317,6 +317,27 @@ def sede_ies10(row):
 
 df["Sede de cursado confirmada"] = df.apply(sede_ies10, axis=1)
 
+# Mantener únicamente las tecnicaturas del IES N.º 10 confirmadas por la docente.
+# La oferta de profesorados del instituto se conserva sin cambios.
+tecnicaturas_ies10_vigentes = {
+    ("yuto", "tecnicatura superior en higiene y seguridad"),
+    ("libertador general san martin", "tecnicatura superior en cocina regional y cultura alimentaria"),
+    ("fraile pintado", "tecnicatura superior en niñez, adolescencia y familia"),
+}
+def es_tecnicatura_ies10_anterior(row):
+    inst = normalize(row.get("Institución", ""))
+    titulo = normalize(row.get("Carrera / título", ""))
+    localidad = normalize(row.get("Localidad", ""))
+    ies10 = ("ies 10" in inst or "instituto de educacion superior" in inst and
+             any(s in inst for s in ("n° 10", "n.º 10", "nº 10", "n°10", "nº10")))
+    es_tecnicatura = ("tecnicatura" in titulo or "tecnico superior" in titulo or
+                       "tecnica superior" in titulo or
+                       "tecnicatura" in normalize(row.get("Tipo de formación", "")))
+    return ies10 and es_tecnicatura and (localidad, titulo) not in tecnicaturas_ies10_vigentes
+
+df = df[~df.apply(es_tecnicatura_ies10_anterior, axis=1)].copy()
+
+
 # Actualización de oferta del IES N.º 10 informada el 21/10/2026.
 # Se aplica a los datos cargados, sin atribuir aperturas de inscripción no verificadas.
 oferta_ies10_actualizada = [
