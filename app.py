@@ -17,6 +17,13 @@ if not FILE.exists():
 def load_data():
     return pd.read_excel(FILE, sheet_name="Carreras").fillna("")
 df = load_data()
+# El IES 6 se actualizó con la oferta oficial anunciada para ingreso 2027.
+# No recuperar registros históricos de ese instituto desde el Excel de respaldo.
+import re as _re
+def _es_ies6(nombre):
+    t = str(nombre).casefold()
+    return bool(_re.search(r"(?:\\bies\\b|instituto de educaci[oó]n superior)\\s*(?:n[.°ºo]*\\s*)?6\\b", t))
+df = df[~df["Institución"].map(_es_ies6)].copy()
 # La hoja de Google Drive es la fuente principal para los registros que contiene.
 # Si no está publicada para lectura, se conserva el respaldo local.
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqkZDRlfoNYwLpzqnMi9AeVI-Y2stohIpvKVL2hr_Gy4Gp3Ay_gaOEvTNDDuDgVL1sypWyRw5EUX8M/pub?gid=2132573097&single=true&output=csv"
