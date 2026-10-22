@@ -4,6 +4,8 @@ import folium
 from streamlit_folium import st_folium
 from pathlib import Path
 import json
+import io
+from urllib.request import urlopen
 
 st.set_page_config(page_title="Mi Futuro Jujuy", page_icon="🎓", layout="wide")
 st.markdown("""<style>div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"] {background:#7138c8;color:white;border:0;font-weight:700;} div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"]:hover {background:#5925a7;color:white;}</style>""", unsafe_allow_html=True)
@@ -27,7 +29,9 @@ SHEET_CSV_URL = (
 )
 @st.cache_data(ttl=300, show_spinner=False)
 def load_google_sheet():
-    tabla = pd.read_csv(SHEET_CSV_URL, dtype=str, keep_default_na=False, timeout=12)
+    with urlopen(SHEET_CSV_URL, timeout=12) as respuesta:
+        contenido_csv = respuesta.read().decode("utf-8-sig")
+    tabla = pd.read_csv(io.StringIO(contenido_csv), dtype=str, keep_default_na=False)
     required = {"Institución", "Localidad", "Carrera", "Tipo de formación"}
     if not required.issubset(tabla.columns):
         raise ValueError("La hoja compartida no tiene las columnas esperadas.")
