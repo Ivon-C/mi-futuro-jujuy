@@ -1168,8 +1168,6 @@ if seleccion_nav=="📊 Mis intereses":
                         st.caption("Explorá las carreras en la pestaña Carreras; no hay coincidencias directas en la clasificación preliminar.")
                     else:
                         display_cols = [career, town, "Institución"]
-                        if "Observación" in matches.columns:
-                            display_cols.append("Observación")
                         st.dataframe(matches[display_cols].drop_duplicates(), hide_index=True, use_container_width=True)
             else:
                 st.info("Elegiste 'No estoy seguro/a' en todas las preguntas. Podés explorar actividades antes de decidir.")
