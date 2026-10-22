@@ -987,20 +987,29 @@ if seleccion_nav=="📍 Mapa":
                         'pointer-events:none;">' + label + '</div>'
                     )
                 ),
+                interactive=False,
             ).add_to(m)
         m.fit_bounds([[-24.65, -67.3], [-21.7, -64.0]])
         event = st_folium(
             m, height=620, use_container_width=True,
-            returned_objects=["last_object_clicked_tooltip"],
+            returned_objects=["last_active_drawing", "last_object_clicked_tooltip"],
             key="mapa_departamentos"
         )
+        # Priorizar la propiedad del polígono realmente pulsado: funciona
+        # también en departamentos pequeños como El Carmen, Palpalá y San Antonio.
+        drawing = (event or {}).get("last_active_drawing") or {}
+        props = drawing.get("properties") or {}
+        matched = str(props.get("departamento", "")).upper().strip()
         clicked = (event or {}).get("last_object_clicked_tooltip")
-        if clicked and clicked != st.session_state.last_map_click:
-            st.session_state.last_map_click = clicked
-            matched = next((name for name in dept_names if name in str(clicked).upper()), None)
-            if matched and matched != selected_department:
-                st.session_state.dept_choice = matched
-                st.rerun()
+        if matched not in dept_names and clicked:
+            import unicodedata
+            raw = unicodedata.normalize("NFKD", str(clicked).upper())
+            raw = "".join(ch for ch in raw if not unicodedata.combining(ch))
+            matched = next((name for name in sorted(dept_names, key=len, reverse=True)
+                            if name in raw), "")
+        if matched in dept_names and matched != selected_department:
+            st.session_state.dept_choice = matched
+            st.rerun()
     else:
         st.error("No se encontró el archivo del mapa departamental.")
     selected_department = st.selectbox(
