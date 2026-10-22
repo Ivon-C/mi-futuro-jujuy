@@ -43,8 +43,16 @@ try:
     google_df = load_google_sheet()
     # Reemplazar en el respaldo las instituciones presentes en Sheets.
     # Así las bajas y correcciones en Drive no vuelven a aparecer desde Excel.
-    institutos_google = set(google_df["Institución"].astype(str).str.strip().str.casefold())
-    df = df[~df["Institución"].astype(str).str.strip().str.casefold().isin(institutos_google)].copy()
+    # Equiparar "IES 10" con "INSTITUTO DE EDUCACIÓN SUPERIOR N° 10" del respaldo.
+    def clave_institucion(valor):
+        import re
+        import unicodedata
+        txt = "".join(letra for letra in unicodedata.normalize("NFKD", str(valor).casefold())
+                      if not unicodedata.combining(letra))
+        numero = re.search(r"(?:\\bies\\b|instituto de educacion superior)\\s*(?:n[.°ºo]*\\s*)?(\\d+)\\b", txt)
+        return "ies " + numero.group(1) if numero else txt.strip()
+    institutos_google = set(google_df["Institución"].map(clave_institucion))
+    df = df[~df["Institución"].map(clave_institucion).isin(institutos_google)].copy()
     df = pd.concat([df, google_df], ignore_index=True)
     st.caption("📄 Datos de Google Sheets · actualización automática aproximadamente cada 5 minutos.")
 except Exception:
