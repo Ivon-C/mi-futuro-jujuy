@@ -263,34 +263,6 @@ df["_clave_institucion"] = df["Institución"].astype(str).str.casefold().str.rep
 ).str.strip()
 df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
 df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
-# Actualización de oferta del IES N.º 10 informada el 21/10/2026.
-# Se aplica a los datos cargados, sin atribuir aperturas de inscripción no verificadas.
-oferta_ies10_actualizada = [
-    ("Yuto", "Tecnicatura Superior en Higiene y Seguridad", "Fundación Te Ayudamos Hermanos"),
-    ("Libertador General San Martín", "Tecnicatura Superior en Cocina Regional y Cultura Alimentaria", "Escuela Normal"),
-    ("Libertador General San Martín", "Enfermería", "Escuela Provincial de Comercio N.º 4"),
-    ("Fraile Pintado", "Tecnicatura Superior en Niñez, Adolescencia y Familia", "Escuela N.º 123 Manuel Belgrano"),
-]
-for localidad_nueva, titulo_nuevo, sede_nueva in oferta_ies10_actualizada:
-    coincidencia = (
-        (df["Localidad"].astype(str).str.strip().str.casefold() == localidad_nueva.casefold()) &
-        (df["Carrera / título"].astype(str).str.strip().str.casefold() == titulo_nuevo.casefold()) &
-        (df["Institución"].astype(str).str.contains(r"IES\\s*(?:N[.º°]*\\s*)?10|Instituto de Educación Superior.*10", case=False, regex=True, na=False))
-    )
-    if coincidencia.any():
-        df.loc[coincidencia, "Sede de cursado confirmada"] = sede_nueva
-    else:
-        nueva_oferta = {
-            "Institución": "IES N.º 10",
-            "Localidad": localidad_nueva,
-            "Carrera / título": titulo_nuevo,
-            "Tipo de formación": "Tecnicatura Superior" if titulo_nuevo.startswith("Tecnicatura") else "Enfermería (tipo de título por confirmar)",
-            "Área principal preliminar": "Salud y bienestar" if "Enfermería" in titulo_nuevo else "",
-            "Observación": "Oferta informada para esta sede. Consultar requisitos y período de inscripción con el IES N.º 10.",
-            "Sede de cursado confirmada": sede_nueva,
-        }
-        df = pd.concat([df, pd.DataFrame([nueva_oferta])], ignore_index=True)
-
 town = "Localidad"
 career = "Carrera / título"
 towns = sorted(df[town].astype(str).unique())
@@ -344,6 +316,36 @@ def sede_ies10(row):
     return ""
 
 df["Sede de cursado confirmada"] = df.apply(sede_ies10, axis=1)
+
+# Actualización de oferta del IES N.º 10 informada el 21/10/2026.
+# Se aplica a los datos cargados, sin atribuir aperturas de inscripción no verificadas.
+oferta_ies10_actualizada = [
+    ("Yuto", "Tecnicatura Superior en Higiene y Seguridad", "Fundación Te Ayudamos Hermanos"),
+    ("Libertador General San Martín", "Tecnicatura Superior en Cocina Regional y Cultura Alimentaria", "Escuela Normal"),
+    ("Libertador General San Martín", "Enfermería", "Escuela Provincial de Comercio N.º 4"),
+    ("Fraile Pintado", "Tecnicatura Superior en Niñez, Adolescencia y Familia", "Escuela N.º 123 Manuel Belgrano"),
+]
+for localidad_nueva, titulo_nuevo, sede_nueva in oferta_ies10_actualizada:
+    coincidencia = (
+        (df["Localidad"].astype(str).str.strip().str.casefold() == localidad_nueva.casefold()) &
+        (df["Carrera / título"].astype(str).str.strip().str.casefold() == titulo_nuevo.casefold()) &
+        (df["Institución"].astype(str).str.contains(r"IES\s*(?:N[.º°]*\s*)?10|Instituto de Educación Superior.*10", case=False, regex=True, na=False))
+    )
+    if coincidencia.any():
+        df.loc[coincidencia, "Sede de cursado confirmada"] = sede_nueva
+    else:
+        nueva_oferta = {
+            "Institución": "IES N.º 10",
+            "Localidad": localidad_nueva,
+            "Carrera / título": titulo_nuevo,
+            "Tipo de formación": "Tecnicatura Superior" if titulo_nuevo.startswith("Tecnicatura") else "Enfermería (tipo de título por confirmar)",
+            "Área principal preliminar": "Salud y bienestar" if "Enfermería" in titulo_nuevo else "",
+            "Observación": "Oferta informada para esta sede. Consultar requisitos y período de inscripción con el IES N.º 10.",
+            "Sede de cursado confirmada": sede_nueva,
+        }
+        df = pd.concat([df, pd.DataFrame([nueva_oferta])], ignore_index=True)
+
+
 
 topics = {
     "programación y tecnología": ["program", "software", "inform", "comput", "datos", "sistema", "robot", "tecnolog"],
