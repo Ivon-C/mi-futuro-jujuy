@@ -819,7 +819,7 @@ if seleccion_nav is None:
 if seleccion_nav=="🏠 Inicio":
     izquierda,derecha=st.columns([1,1.1],gap="large",vertical_alignment="center")
     with izquierda:
-        st.markdown('<div class="mf-eyebrow">ORIENTACIÓN EDUCATIVA EN JUJUY</div><div class="mf-hero-title">Tu futuro también<br>se construye <em>acá</em></div><p class="mf-intro">Un espacio para explorar tus intereses, conocer las carreras e instituciones de Jujuy y descubrir las oportunidades que se ajustan a vos.</p>',unsafe_allow_html=True)
+        st.markdown('<div class="mf-eyebrow">ORIENTACIÓN EDUCATIVA EN JUJUY</div><div class="mf-hero-title">Tu futuro comienza<br>con un <em>clic.</em></div><p class="mf-intro">Descubrí carreras, explorá tus intereses y conocé todo lo que Jujuy tiene para ofrecerte.</p>',unsafe_allow_html=True)
     with derecha:
         # La imagen se carga como recurso local para mantener los botones y textos accesibles.
         portada_imagen = Path(__file__).with_name("jujuy_portada.webp")
