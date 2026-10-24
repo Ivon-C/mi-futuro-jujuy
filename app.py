@@ -458,6 +458,32 @@ def mostrar_contacto_institucional(row):
     st.markdown("**📬 Contacto del instituto:** " + "  ·  ".join(enlaces))
 
 
+def ingreso_2027_visible(row):
+    """Ingreso 2027: mostrar solo datos oficiales aportados en la base."""
+    from urllib.parse import urlsplit
+    resumen = visible_value(row.get("Ingreso 2027", ""))
+    enlace = visible_value(row.get("Enlace de ingreso 2027", ""))
+    if enlace:
+        try:
+            url = urlsplit(enlace)
+            if url.scheme not in ("http", "https") or not url.netloc or any(c in enlace for c in (" ", "<", ">")):
+                enlace = ""
+        except ValueError:
+            enlace = ""
+    return resumen, enlace
+
+
+def mostrar_ingreso_2027(row):
+    resumen, enlace = ingreso_2027_visible(row)
+    if not (resumen or enlace):
+        return
+    with st.expander("📅 Ingreso 2027"):
+        if resumen:
+            st.write(resumen)
+        if enlace:
+            st.markdown(f"🔗 [Ver información oficial de ingreso 2027]({enlace})")
+
+
 def alcance_sede_visible(row):
     """Aviso importante: algunas sedes ofrecen solo el primer año."""
     obs = normalize(row.get("Observación", ""))
@@ -473,7 +499,7 @@ public_fields = [
     "Área principal preliminar", "Duración", "Modalidad", "Facultad",
     "Sede de cursado confirmada", "Lugar donde se dicta",
     "Sitio web institucional", "Teléfono institucional", "Correo institucional",
-    "Título otorgado",
+    "Título otorgado", "Unidad académica", "Ingreso 2027", "Enlace de ingreso 2027",
 ]
 for field in public_fields:
     if field in df.columns:
@@ -882,6 +908,9 @@ with st.container(key="cifac_launcher"):
                         sitio, _, _ = contacto_institucional_visible(item)
                         if sitio:
                             lines.append(f"🌐 [Sitio web institucional]({sitio})")
+                        _, ingreso_link = ingreso_2027_visible(item)
+                        if ingreso_link:
+                            lines.append(f"📅 [Ingreso 2027]({ingreso_link})")
                         lines.append("")
                     lines.append("*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*")
                     response = "\n".join(lines)
@@ -1304,7 +1333,7 @@ if seleccion_nav=="📍 Mapa":
                         institucion = visible_value(item.get("Institución", ""))
                         if institucion:
                             st.caption(f"🏫 {institucion}")
-                        facultad = visible_value(item.get("Facultad", ""))
+                        facultad = visible_value(item.get("Unidad académica", "")) or visible_value(item.get("Facultad", ""))
                         if facultad:
                             st.caption(f"🏛️ {facultad}")
                         sede = visible_value(item.get("Sede de cursado confirmada", ""))
@@ -1313,6 +1342,7 @@ if seleccion_nav=="📍 Mapa":
                         if sede:
                             st.caption(f"📍 Sede: {sede}")
                         mostrar_contacto_institucional(item)
+                        mostrar_ingreso_2027(item)
                         area = visible_value(item.get("Área principal preliminar", ""))
                         if area:
                             st.caption(f"Área: {area}")
@@ -1368,11 +1398,15 @@ if seleccion_nav=="🎓 Buscá carreras":
                     st.caption(f"📘 {complemento}")
                 if institucion:
                     st.write(f"🏫 **Institución:** {institucion}")
+                unidad = visible_value(carrera_row.get("Unidad académica", "")) or visible_value(carrera_row.get("Facultad", ""))
+                if unidad:
+                    st.write(f"🏛️ **Unidad académica:** {unidad}")
                 if localidad:
                     st.write(f"📍 **Localidad:** {localidad}")
                 if sede:
                     st.write(f"🏢 **Sede de cursado:** {sede}")
                 mostrar_contacto_institucional(carrera_row)
+                mostrar_ingreso_2027(carrera_row)
                 if aviso:
                     st.caption(f"ℹ️ {aviso}")
 if seleccion_nav=="📊 Mis intereses":
