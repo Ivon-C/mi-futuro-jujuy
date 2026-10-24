@@ -380,6 +380,8 @@ def visible_value(value):
     if clean in {
         "", "nan", "none", "null", "nat", "n/a", "na", "sin dato",
         "sin datos", "no disponible", "no informado", "no informada",
+        "por clasificar", "sin clasificar", "en revision", "a verificar",
+        "-", "consultar",
         "no informados", "no informadas", "a confirmar", "por confirmar",
         "sin confirmar", "pendiente de confirmar",
         "pendiente de confirmacion", "pendiente de verificacion",
@@ -468,7 +470,13 @@ def sede_ies10(row):
             return "Escuela Normal"
     return ""
 
-df["Sede de cursado confirmada"] = df.apply(sede_ies10, axis=1)
+# Mantener la dirección real que viene de Google Sheets. Sobrescribirla solo
+# si existe una corrección específica y confirmada para el IES N.º 10.
+if "Sede de cursado confirmada" not in df.columns:
+    df["Sede de cursado confirmada"] = ""
+sede_confirmada_ies10 = df.apply(sede_ies10, axis=1)
+reemplazar_sede = sede_confirmada_ies10.ne("")
+df.loc[reemplazar_sede, "Sede de cursado confirmada"] = sede_confirmada_ies10[reemplazar_sede]
 
 # Aplicar correcciones históricas del IES 10 solo al respaldo cuando Drive no está disponible.
 if "google_df" not in locals():
@@ -514,7 +522,7 @@ if "google_df" not in locals():
                 "Institución": "IES N.º 10",
                 "Localidad": localidad_nueva,
                 "Carrera / título": titulo_nuevo,
-                "Tipo de formación": "Tecnicatura Superior" if titulo_nuevo.startswith("Tecnicatura") else "Enfermería (tipo de título por confirmar)",
+                "Tipo de formación": "Tecnicatura Superior" if titulo_nuevo.startswith("Tecnicatura") else "",
                 "Área principal preliminar": "Salud y bienestar" if "Enfermería" in titulo_nuevo else "",
                 "Observación": "Oferta informada para esta sede. Consultar requisitos y período de inscripción con el IES N.º 10.",
                 "Sede de cursado confirmada": sede_nueva,
@@ -806,8 +814,11 @@ with st.container(key="cifac_launcher"):
                              f"Encontré **{len(chosen_rows)} carreras registradas** en esta categoría:", ""]
                     for index, (_, item) in enumerate(chosen_rows.sort_values(career).iterrows(), 1):
                         lines.extend([f"**{index}. {item[career]}**",
-                                      f"🏫 {item['Institución']}",
-                                      ("⚠️ " + str(item.get("Observación", ""))) if str(item.get("Observación", "")).strip() else "", ""])
+                                      f"🏫 {item['Institución']}"])
+                        aviso = alcance_sede_visible(item)
+                        if aviso:
+                            lines.append(f"ℹ️ {aviso}")
+                        lines.append("")
                     lines.append("*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*")
                     response = "\n".join(lines)
                     st.session_state.cifac_step = "continuar"
@@ -1212,7 +1223,12 @@ if seleccion_nav=="📍 Mapa":
                         duracion = duracion_visible(item)
                         if duracion:
                             st.caption(f"⏳ Duración: {duracion}")
-                        st.caption(f"🧑‍🏫 Modalidad de cursado: {modalidad_visible(item)}")
+                        modalidad = modalidad_visible(item)
+                        if modalidad:
+                            st.caption(f"🧑‍🏫 Modalidad de cursado: {modalidad}")
+                        aviso = alcance_sede_visible(item)
+                        if aviso:
+                            st.caption(f"ℹ️ {aviso}")
                         institucion = visible_value(item.get("Institución", ""))
                         if institucion:
                             st.caption(f"🏫 {institucion}")
@@ -1222,15 +1238,11 @@ if seleccion_nav=="📍 Mapa":
                         sede = visible_value(item.get("Sede de cursado confirmada", ""))
                         if not sede:
                             sede = visible_value(item.get("Lugar donde se dicta", ""))
-                        if sede and "dirección a confirmar" not in normalize(sede) and "dirección sin confirmar" not in normalize(sede):
+                        if sede:
                             st.caption(f"📍 Sede: {sede}")
                         area = visible_value(item.get("Área principal preliminar", ""))
                         if area:
                             st.caption(f"Área: {area}")
-                        nota_oferta = visible_value(item.get("Observación", ""))
-                        if nota_oferta and ("tecnicatura" in normalize(item.get("Tipo de formación", "")) or
-                                          "tecnicatura" in normalize(item.get("Carrera / título", ""))):
-                            st.caption(f"ℹ️ {nota_oferta}")
         with st.expander("Ver tabla completa de registros"):
             results(filtered)
 if seleccion_nav=="🎓 Buscá carreras":
@@ -1241,7 +1253,7 @@ if seleccion_nav=="🎓 Buscá carreras":
         q = st.text_input("¿Qué te gustaría estudiar?", placeholder="Ej.: Matemática, Enfermería, Programación…", key="busqueda_carrera")
     with col_localidad:
         loc = st.selectbox("📍 Localidad", ["Todas las localidades"] + towns, key="searchloc")
-    tipos = sorted(t for t in df["Tipo de formación"].astype(str).unique() if t.strip())
+    tipos = sorted(t for t in df["Tipo de formación"].unique() if visible_value(t))
     tipo = st.selectbox("🎓 Tipo de formación", ["Todas las formaciones"] + tipos, key="searchtipo")
     subset = df.copy()
     if loc != "Todas las localidades":
@@ -1257,28 +1269,35 @@ if seleccion_nav=="🎓 Buscá carreras":
         st.info("No encontramos coincidencias. Probá otra palabra o seleccioná «Todas las localidades».")
     else:
         for _, carrera_row in subset.iterrows():
-            nombre = str(carrera_row.get(career, "")).strip()
-            institucion = str(carrera_row.get("Institución", "")).strip()
-            localidad = str(carrera_row.get(town, "")).strip()
-            formacion = str(carrera_row.get("Tipo de formación", "")).strip()
-            area = str(carrera_row.get("Área principal preliminar", "")).strip()
-            observacion = str(carrera_row.get("Observación", "")).strip()
-            sede = str(carrera_row.get("Sede de cursado confirmada", "")).strip()
+            nombre = visible_value(carrera_row.get(career, ""))
+            institucion = visible_value(carrera_row.get("Institución", ""))
+            localidad = visible_value(carrera_row.get(town, ""))
+            formacion = visible_value(carrera_row.get("Tipo de formación", ""))
+            area = visible_value(carrera_row.get("Área principal preliminar", ""))
+            sede = visible_value(carrera_row.get("Sede de cursado confirmada", ""))
+            if not sede:
+                sede = visible_value(carrera_row.get("Lugar donde se dicta", ""))
+            aviso = alcance_sede_visible(carrera_row)
             with st.container(border=True):
-                st.markdown(f"#### 🎓 {nombre}")
+                if nombre:
+                    st.markdown(f"#### 🎓 {nombre}")
                 duracion = duracion_visible(carrera_row)
                 if duracion:
                     st.write(f"⏳ **Duración:** {duracion}")
-                st.write(f"🧑‍🏫 **Modalidad de cursado:** {modalidad_visible(carrera_row)}")
-                if formacion:
-                    st.caption(f"📘 {formacion}" + (f"  ·  {area}" if area else ""))
-                st.write(f"🏫 **Institución:** {institucion}")
-                st.write(f"📍 **Localidad:** {localidad}")
+                modalidad = modalidad_visible(carrera_row)
+                if modalidad:
+                    st.write(f"🧑‍🏫 **Modalidad de cursado:** {modalidad}")
+                if formacion or area:
+                    complemento = f"{formacion} · {area}" if formacion and area else formacion or area
+                    st.caption(f"📘 {complemento}")
+                if institucion:
+                    st.write(f"🏫 **Institución:** {institucion}")
+                if localidad:
+                    st.write(f"📍 **Localidad:** {localidad}")
                 if sede:
                     st.write(f"🏢 **Sede de cursado:** {sede}")
-                if observacion:
-                    with st.expander("ℹ️ Información importante"):
-                        st.write(observacion)
+                if aviso:
+                    st.caption(f"ℹ️ {aviso}")
 if seleccion_nav=="📊 Mis intereses":
     st.subheader("🧭 Descubrí tus intereses")
     st.write("Explorá actividades vinculadas con distintas áreas de estudio y trabajo. No necesitás saber hacerlas: respondé según lo que te gustaría conocer o realizar.")
