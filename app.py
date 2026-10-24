@@ -362,9 +362,64 @@ def _clave_institucion_canonica(valor):
 df["_clave_institucion"] = df["Institución"].map(_clave_institucion_canonica)
 df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
 df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
+import re
+import unicodedata
+
+def normalize(value):
+    value = unicodedata.normalize("NFKD", str(value).casefold())
+    return "".join(char for char in value if not unicodedata.combining(char))
+
+def visible_value(value):
+    """No mostrar valores ausentes ni datos declarados pendientes de confirmar."""
+    if value is None:
+        return ""
+    if not isinstance(value, str) and pd.isna(value):
+        return ""
+    text = str(value).strip()
+    clean = normalize(text)
+    if clean in {
+        "", "nan", "none", "null", "nat", "n/a", "na", "sin dato",
+        "sin datos", "no disponible", "no informado", "no informada",
+        "no informados", "no informadas", "a confirmar", "por confirmar",
+        "sin confirmar", "pendiente de confirmar",
+        "pendiente de confirmacion", "pendiente de verificacion",
+        "no especificado", "no especificada", "consultar duracion",
+        "duracion no informada", "sin informacion",
+    }:
+        return ""
+    if any(fragment in clean for fragment in (
+        "pendiente de confirm", "pendiente de verific", "direccion sin confirmar",
+        "direccion a confirmar", "domicilio a confirmar", "domicilio sin confirmar",
+        "sede a confirmar", "sede sin confirmar", "direccion no confirmada",
+        "direccion no informada", "consultar domicilio", "consultar direccion",
+    )):
+        return ""
+    return text
+
+
+def alcance_sede_visible(row):
+    """Aviso importante: algunas sedes ofrecen solo el primer año."""
+    obs = normalize(row.get("Observación", ""))
+    dur = normalize(row.get("Duración", ""))
+    if re.search(r"\bsolo\s*(?:1|primer)\b", obs + " " + dur):
+        return "En esta sede se cursa solo el primer año; consultá dónde continuar."
+    return ""
+
+
+# La información pendiente permanece en Sheets; nunca se presenta como dato seguro.
+public_fields = [
+    "Institución", "Localidad", "Carrera / título", "Tipo de formación",
+    "Área principal preliminar", "Duración", "Modalidad", "Facultad",
+    "Sede de cursado confirmada", "Lugar donde se dicta",
+]
+for field in public_fields:
+    if field in df.columns:
+        df[field] = df[field].map(visible_value)
+df = df[df["Carrera / título"].ne("")].copy()
+
 town = "Localidad"
 career = "Carrera / título"
-towns = sorted(df[town].astype(str).unique())
+towns = sorted(localidad for localidad in df[town].unique() if localidad)
 coords = {
     "Abra Pampa":(-22.72,-65.70), "El Carmen":(-24.39,-65.26),
     "Fraile Pintado":(-23.94,-64.80), "Humahuaca":(-23.21,-65.35),
@@ -385,16 +440,12 @@ def results(frame):
         frame["Duración"] = frame.apply(duracion_visible, axis=1)
         frame["Modalidad"] = frame.apply(modalidad_visible, axis=1)
         display_cols = ["Institución", town, career, "Tipo de formación", "Duración", "Modalidad", "Área principal preliminar"]
-        if "Observación" in frame.columns:
-            display_cols.append("Observación")
-        st.dataframe(frame[display_cols], hide_index=True, use_container_width=True)
-import re
-import unicodedata
-
-def normalize(value):
-    value = unicodedata.normalize("NFKD", str(value).casefold())
-    return "".join(char for char in value if not unicodedata.combining(char))
-
+        display_cols = [column for column in display_cols if column in frame.columns]
+        for column in display_cols:
+            frame[column] = frame[column].map(visible_value)
+        display_cols = [column for column in display_cols if frame[column].ne("").any()]
+        if display_cols:
+            st.dataframe(frame[display_cols], hide_index=True, use_container_width=True)
 # Sedes de cursado del IES N.º 10 informadas por la docente.
 # No mostrar datos de sede cuando no están confirmados.
 def sede_ies10(row):
@@ -503,21 +554,15 @@ dept_towns = {
     "YAVI": ["La Quiaca"],
 }
 
-def visible_value(value):
-    """Oculta valores ausentes y marcadores importados desde Excel."""
-    if pd.isna(value):
-        return ""
-    text = str(value).strip()
-    if normalize(text) in {"", "nan", "none", "null", "nat", "n/a", "na", "sin dato", "no disponible", "por confirmar"}:
-        return ""
-    return text
-
-
 def duracion_visible(row):
     """Usa la duración registrada y completa las reglas conocidas de los IES provinciales."""
     registrada = visible_value(row.get("Duración", ""))
     if registrada:
+        if "solo" in normalize(registrada) and re.search(r"\b(?:primer|1)\b", normalize(registrada)):
+            return ""  # Alcance de una sede, no duración total.
         return registrada
+    if normalize(row.get("Carrera / título", "")) == "profesorado tecnico":
+        return ""  # La duración aún no está verificada.
     institucion = normalize(row.get("Institución", ""))
     match = __import__("re").search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", institucion)
     if not match:
@@ -564,7 +609,7 @@ def modalidad_visible(row):
     }
     if ("agrarias" in institucion or "fca" in institucion) and titulo in carreras_alternancia_fca:
         return "Presencial con alternancia (actividades presenciales y virtuales)"
-    return "Presencial"
+    return ""  # Si no hay modalidad registrada, no inventar la categoría.
 
 
 def career_kind(row):
