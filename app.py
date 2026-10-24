@@ -1215,11 +1215,14 @@ if seleccion_nav=="📍 Mapa":
                 grouped = locality_group[locality_group["_tipo_grupo"] == kind]
                 if grouped.empty:
                     continue
-                st.markdown(f"**{kind} ({len(grouped)})**")
+                titulo_grupo = "Más carreras" if kind == "Otras formaciones" else kind
+                st.markdown(f"**{titulo_grupo} ({len(grouped)})**")
                 for _, item in grouped.sort_values(career).iterrows():
                     with st.container(border=True):
                         st.markdown(f"**🎓 {item[career]}**")
-                        st.caption(f"📚 Tipo de formación: {kind[:-1] if kind != 'Otras formaciones' else 'Otra formación'}")
+                        tipo_formacion = visible_value(item.get("Tipo de formación", ""))
+                        if tipo_formacion:
+                            st.caption(f"📚 Tipo de formación: {tipo_formacion}")
                         duracion = duracion_visible(item)
                         if duracion:
                             st.caption(f"⏳ Duración: {duracion}")
