@@ -492,29 +492,24 @@ def enlace_oficial_carrera(row):
     return enlace
 
 
-def mostrar_pagina_carrera(row):
-    """Para todas las carreras: fuente oficial; si falta, web institucional."""
-    oficial = enlace_oficial_carrera(row)
-    sitio, _, _ = contacto_institucional_visible(row)
-    if oficial:
-        st.markdown(f"🔗 **[Ver información oficial de la carrera]({oficial})**")
-    elif sitio:
-        st.markdown(f"🌐 **[Ver sitio web institucional]({sitio})**")
-
-
-def mostrar_contacto_institucional(row):
-    """Mostrar contactos existentes sin repetir el enlace principal de la ficha."""
+def mostrar_informacion_y_contacto(row):
+    """Un solo apartado en todas las fichas; nunca muestra etiquetas vacías."""
+    pagina = enlace_oficial_carrera(row)
     sitio, telefono, correo = contacto_institucional_visible(row)
-    oficial = enlace_oficial_carrera(row)
-    enlaces = []
-    if sitio and oficial and sitio != oficial:
-        enlaces.append(f"🌐 [Sitio web institucional]({sitio})")
+    # Priorizar la página específica de la carrera; si no existe, mostrar
+    # el sitio institucional. Nunca duplicar enlaces.
+    enlace = pagina or sitio
+    detalles = []
+    if enlace:
+        detalles.append(f"🔗 [Página web oficial]({enlace})")
     if telefono:
-        enlaces.append(f"📞 {telefono}")
+        detalles.append(f"📞 **Teléfono:** {telefono}")
     if correo:
-        enlaces.append(f"✉️ [{correo}](mailto:{correo})")
-    if enlaces:
-        st.markdown("**📬 Contacto del instituto:** " + "  ·  ".join(enlaces))
+        detalles.append(f"✉️ **Correo:** [{correo}](mailto:{correo})")
+    if not detalles:
+        return
+    st.markdown("**🌐 Información y contacto**")
+    st.markdown("  \\n".join(detalles))
 
 
 def ingreso_2027_visible(row):
@@ -976,10 +971,9 @@ with st.container(key="cifac_launcher"):
                             lines.append(f"ℹ️ {aviso}")
                         pagina = enlace_oficial_carrera(item)
                         sitio, _, _ = contacto_institucional_visible(item)
-                        if pagina:
-                            lines.append(f"🔗 [Información oficial de la carrera]({pagina})")
-                        if sitio and sitio != pagina:
-                            lines.append(f"🌐 [Sitio web institucional]({sitio})")
+                        enlace = pagina or sitio
+                        if enlace:
+                            lines.append(f"🌐 [Página web oficial]({enlace})")
                         _, ingreso_link = ingreso_2027_visible(item)
                         if ingreso_link:
                             lines.append(f"📅 [Ingreso 2027]({ingreso_link})")
@@ -1390,7 +1384,6 @@ if seleccion_nav=="📍 Mapa":
                 for _, item in grouped.sort_values(career).iterrows():
                     with st.container(border=True):
                         st.markdown(f"**🎓 {item[career]}**")
-                        mostrar_pagina_carrera(item)
                         tipo_formacion = visible_value(item.get("Tipo de formación", ""))
                         if tipo_formacion:
                             st.caption(f"📚 Tipo de formación: {tipo_formacion}")
@@ -1417,7 +1410,7 @@ if seleccion_nav=="📍 Mapa":
                             sede = visible_value(item.get("Lugar donde se dicta", ""))
                         if sede:
                             st.caption(f"📍 Sede: {sede}")
-                        mostrar_contacto_institucional(item)
+                        mostrar_informacion_y_contacto(item)
                         mostrar_ingreso_2027(item)
                         area = visible_value(item.get("Área principal preliminar", ""))
                         if area:
@@ -1460,7 +1453,6 @@ if seleccion_nav=="🎓 Buscá carreras":
             with st.container(border=True):
                 if nombre:
                     st.markdown(f"#### 🎓 {nombre}")
-                mostrar_pagina_carrera(carrera_row)
                 duracion = duracion_visible(carrera_row)
                 if duracion:
                     st.write(f"⏳ **Duración:** {duracion}")
@@ -1482,7 +1474,7 @@ if seleccion_nav=="🎓 Buscá carreras":
                     st.write(f"📍 **Localidad:** {localidad}")
                 if sede:
                     st.write(f"🏢 **Sede de cursado:** {sede}")
-                mostrar_contacto_institucional(carrera_row)
+                mostrar_informacion_y_contacto(carrera_row)
                 mostrar_ingreso_2027(carrera_row)
                 if aviso:
                     st.caption(f"ℹ️ {aviso}")
