@@ -473,6 +473,7 @@ public_fields = [
     "Área principal preliminar", "Duración", "Modalidad", "Facultad",
     "Sede de cursado confirmada", "Lugar donde se dicta",
     "Sitio web institucional", "Teléfono institucional", "Correo institucional",
+    "Título otorgado",
 ]
 for field in public_fields:
     if field in df.columns:
@@ -1291,6 +1292,9 @@ if seleccion_nav=="📍 Mapa":
                         duracion = duracion_visible(item)
                         if duracion:
                             st.caption(f"⏳ Duración: {duracion}")
+                        titulo_otorgado = visible_value(item.get("Título otorgado", ""))
+                        if titulo_otorgado:
+                            st.caption(f"🎓 Título: {titulo_otorgado}")
                         modalidad = modalidad_visible(item)
                         if modalidad:
                             st.caption(f"🧑‍🏫 Modalidad de cursado: {modalidad}")
@@ -1353,6 +1357,9 @@ if seleccion_nav=="🎓 Buscá carreras":
                 duracion = duracion_visible(carrera_row)
                 if duracion:
                     st.write(f"⏳ **Duración:** {duracion}")
+                titulo_otorgado = visible_value(carrera_row.get("Título otorgado", ""))
+                if titulo_otorgado:
+                    st.write(f"🎓 **Título:** {titulo_otorgado}")
                 modalidad = modalidad_visible(carrera_row)
                 if modalidad:
                     st.write(f"🧑‍🏫 **Modalidad de cursado:** {modalidad}")
