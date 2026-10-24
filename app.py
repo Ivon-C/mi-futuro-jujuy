@@ -22,7 +22,7 @@ df = load_data()
 import re as _re
 def _es_ies6(nombre):
     t = str(nombre).casefold()
-    return bool(_re.search(r"(?:\\bies\\b|instituto de educaci[oó]n superior)\\s*(?:n[.°ºo]*\\s*)?6\\b", t))
+    return bool(_re.search(r"(?:\bies\b|instituto de educaci[oó]n superior)\s*(?:n[.°ºo]*\s*)?6\b", t))
 df = df[~df["Institución"].map(_es_ies6)].copy()
 # La hoja de Google Drive es la fuente principal para los registros que contiene.
 # Si no está publicada para lectura, se conserva el respaldo local.
@@ -103,7 +103,7 @@ cerrada_para_ingreso = df.astype(str).apply(
         case=False, regex=True)
 ).any(axis=1)
 es_ies = df["Institución"].astype(str).str.contains(
-    r"(?:\\bies\\b|instituto de educaci[oó]n superior)\\s*(?:n[.°ºo]*\\s*)?\\d+",
+    r"(?:\bies\b|instituto de educaci[oó]n superior)\s*(?:n[.°ºo]*\s*)?\d+",
     case=False, regex=True)
 es_tecnica = df["Carrera / título"].astype(str).str.contains(
     "tecnicatura|técnic", case=False, regex=True
@@ -357,7 +357,7 @@ def _clave_institucion_canonica(valor):
                 if not unicodedata.combining(x))
     if "unju" in t or "universidad nacional de jujuy" in t:
         return "universidad nacional de jujuy"
-    t = _re.sub(r"\\s*\\(extension aulica\\)", "", t)
+    t = _re.sub(r"\s*\(extension aulica\)", "", t)
     return " ".join(t.split())
 df["_clave_institucion"] = df["Institución"].map(_clave_institucion_canonica)
 df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
@@ -519,7 +519,7 @@ def duracion_visible(row):
     if registrada:
         return registrada
     institucion = normalize(row.get("Institución", ""))
-    match = __import__("re").search(r"(?:\\bies\\b|instituto de educacion superior)\\s*(?:n[.°ºo]*\\s*)?(\\d+)\\b", institucion)
+    match = __import__("re").search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", institucion)
     if not match:
         return ""
     numero = match.group(1)
