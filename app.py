@@ -56,15 +56,61 @@ try:
         numero = re.search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", txt)
         return "ies " + numero.group(1) if numero else txt.strip()
     institutos_google = set(google_df["Institución"].map(clave_institucion))
-    df = df[~df["Institución"].map(clave_institucion).isin(institutos_google)].copy()
+    # Conservar las tecnicaturas y las demás carreras históricas de los IES
+    # incorporados ahora (3, 4, 5, 7 y 8). La ausencia de una tecnicatura
+    # de la planilla NO significa que el instituto haya dejado de dictarla.
+    # Para los IES ya depurados (1, 2, 6, 9, 10 y 11) se mantienen las
+    # decisiones previas para no reintroducir registros descartados.
+    conservar_respaldo_de = {"ies 3", "ies 4", "ies 5", "ies 7", "ies 8"}
+    def clave_textual(valor):
+        import unicodedata
+        import re
+        txt = "".join(ch for ch in unicodedata.normalize("NFKD", str(valor).casefold())
+                      if not unicodedata.combining(ch))
+        return re.sub(r"[^a-z0-9]+", " ", txt).strip()
+
+    claves_google = {
+        (clave_institucion(fila.get("Institución", "")),
+         clave_textual(fila.get("Localidad", "")),
+         clave_textual(fila.get("Carrera / título", "")))
+        for _, fila in google_df.iterrows()
+    }
+
+    def conservar_registro_historico(fila):
+        institucion = clave_institucion(fila.get("Institución", ""))
+        if institucion not in institutos_google:
+            return True
+        if institucion not in conservar_respaldo_de:
+            return False
+        clave = (institucion,
+                 clave_textual(fila.get("Localidad", "")),
+                 clave_textual(fila.get("Carrera / título", "")))
+        return clave not in claves_google
+
+    df = df[df.apply(conservar_registro_historico, axis=1)].copy()
     df = pd.concat([df, google_df], ignore_index=True)
     st.caption("📄 Datos de Google Sheets · actualización automática aproximadamente cada 5 minutos.")
 except Exception:
     st.caption("📄 Mostrando la copia de respaldo. Para activar la sincronización, publicá la pestaña Carreras como CSV en Google Sheets.")
 
 
-# El archivo histórico no acredita inscripciones abiertas. Excluir entradas con cierre explícito.
-df = df[~df.astype(str).apply(lambda col: col.str.contains("inscripciones no habilitadas|inscripciones cerradas|no admite ingresantes", case=False, regex=True)).any(axis=1)].copy()
+# Conservar las tecnicaturas históricas de los IES, aun cuando la ficha
+# mencione un cierre de preinscripción para una cohorte anterior.
+# Cierre de ingreso NO equivale a supresión de la carrera del catálogo.
+cerrada_para_ingreso = df.astype(str).apply(
+    lambda col: col.str.contains(
+        "inscripciones no habilitadas|inscripciones cerradas|no admite ingresantes",
+        case=False, regex=True)
+).any(axis=1)
+es_ies = df["Institución"].astype(str).str.contains(
+    r"(?:\\bies\\b|instituto de educaci[oó]n superior)\\s*(?:n[.°ºo]*\\s*)?\\d+",
+    case=False, regex=True)
+es_tecnica = df["Carrera / título"].astype(str).str.contains(
+    "tecnicatura|técnic", case=False, regex=True
+) | df["Tipo de formación"].astype(str).str.contains(
+    "tecnicatura", case=False, regex=True
+)
+df = df[~cerrada_para_ingreso | (es_ies & es_tecnica)].copy()
 # Fuente: Facultad de Ingeniería UNJu. En Libertador se cursa solo primer año.
 engineering_note = ("SOLO PRIMER AÑO en Libertador. Extensión Áulica FI-UNJu, "
                     "Escuela Técnica Ing. Herminio Arrieta, Mariano Moreno 1368. "
@@ -1103,7 +1149,7 @@ if seleccion_nav=="📍 Mapa":
         st.info("Todavía no hay ofertas cargadas para esta selección en la base preliminar.")
     else:
         st.markdown("### 🎓 Carreras por localidad")
-        st.caption("Las inscripciones, los requisitos y las sedes pueden variar. Consultá la información oficial de cada institución.")
+        st.caption("Los profesorados se mantienen como opciones de formación; la apertura de nuevos ingresos debe confirmarse con cada IES. Las tecnicaturas pueden cambiar según la cohorte: aunque sigan en el catálogo, verificá su continuidad, sede y convocatoria.")
         kind_order = ["Profesorados", "Tecnicaturas", "Ingenierías", "Licenciaturas", "Otras formaciones"]
         for locality, locality_group in filtered.groupby(town, sort=True):
             st.markdown(f"#### 📍 {locality}")
@@ -1136,6 +1182,10 @@ if seleccion_nav=="📍 Mapa":
                         area = visible_value(item.get("Área principal preliminar", ""))
                         if area:
                             st.caption(f"Área: {area}")
+                        nota_oferta = visible_value(item.get("Observación", ""))
+                        if nota_oferta and ("tecnicatura" in normalize(item.get("Tipo de formación", "")) or
+                                          "tecnicatura" in normalize(item.get("Carrera / título", ""))):
+                            st.caption(f"ℹ️ {nota_oferta}")
         with st.expander("Ver tabla completa de registros"):
             results(filtered)
 if seleccion_nav=="🎓 Buscá carreras":
@@ -1157,7 +1207,7 @@ if seleccion_nav=="🎓 Buscá carreras":
         consulta = normalize(q.strip())
         subset = subset[subset.apply(lambda row: consulta in normalize(" ".join(map(str, row.values))), axis=1)]
     st.markdown(f"**{len(subset)} opciones encontradas**")
-    st.caption("Oferta de referencia: verificá requisitos, sedes e inscripciones con cada institución.")
+    st.caption("Catálogo orientativo: los profesorados pueden continuar aunque no haya ingreso abierto. Para tecnicaturas, confirmá la continuidad de la próxima cohorte, la sede y la inscripción.")
     if subset.empty:
         st.info("No encontramos coincidencias. Probá otra palabra o seleccioná «Todas las localidades».")
     else:
