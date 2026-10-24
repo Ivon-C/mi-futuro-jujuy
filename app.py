@@ -335,7 +335,10 @@ def results(frame):
         st.info("No hay coincidencias en esta base preliminar.")
     else:
         st.caption(f"{len(frame)} registros históricos")
-        display_cols = ["Institución", town, career, "Tipo de formación", "Área principal preliminar"]
+        frame = frame.copy()
+        frame["Duración"] = frame.apply(duracion_visible, axis=1)
+        frame["Modalidad"] = frame.apply(modalidad_visible, axis=1)
+        display_cols = ["Institución", town, career, "Tipo de formación", "Duración", "Modalidad", "Área principal preliminar"]
         if "Observación" in frame.columns:
             display_cols.append("Observación")
         st.dataframe(frame[display_cols], hide_index=True, use_container_width=True)
@@ -485,6 +488,38 @@ def duracion_visible(row):
             return "5 años"
         return "4 años"
     return ""
+
+
+
+def modalidad_visible(row):
+    """Distingue la modalidad de cursado de la carrera de las instancias de ingreso."""
+    registrada = visible_value(row.get("Modalidad", ""))
+    if registrada:
+        return registrada
+    titulo = normalize(row.get("Carrera / título", ""))
+    localidad = normalize(row.get("Localidad", ""))
+    institucion = normalize(row.get("Institución", ""))
+    if titulo == "licenciatura en ciencia politica":
+        # La modalidad formal publicada es presencial, con clases virtuales
+        # y algunas evaluaciones presenciales informadas por la docente.
+        return "Clases virtuales; algunos exámenes presenciales (modalidad oficial: presencial)"
+    if titulo == "tecnicatura universitaria en transformacion de la produccion agropecuaria":
+        if localidad == "abra pampa":
+            return "Modalidad especial: 75 % virtual y 25 % presencial intensiva al final del cuatrimestre"
+        return "Presencial con alternancia: una semana en sede y otra virtual sincrónica"
+    if titulo == "licenciatura en desarrollo rural":
+        return "Modalidad especial: 75 % virtual y 25 % presencial intensiva (una semana al final de cada cuatrimestre)"
+    # La FCA-UNJu publica alternancia en varias sedes del interior.
+    # El cursado combina actividades presenciales con encuentros virtuales.
+    carreras_alternancia_fca = {
+        "tecnicatura universitaria en produccion de animales de granja",
+        "tecnicatura universitaria en mecanizacion agricola",
+        "tecnicatura universitaria forestal",
+        "licenciatura en gestion ambiental"
+    }
+    if ("agrarias" in institucion or "fca" in institucion) and titulo in carreras_alternancia_fca:
+        return "Presencial con alternancia (actividades presenciales y virtuales)"
+    return "Presencial"
 
 
 def career_kind(row):
@@ -1087,6 +1122,7 @@ if seleccion_nav=="📍 Mapa":
                         duracion = duracion_visible(item)
                         if duracion:
                             st.caption(f"⏳ Duración: {duracion}")
+                        st.caption(f"🧑‍🏫 Modalidad de cursado: {modalidad_visible(item)}")
                         institucion = visible_value(item.get("Institución", ""))
                         if institucion:
                             st.caption(f"🏫 {institucion}")
@@ -1139,6 +1175,7 @@ if seleccion_nav=="🎓 Buscá carreras":
                 duracion = duracion_visible(carrera_row)
                 if duracion:
                     st.write(f"⏳ **Duración:** {duracion}")
+                st.write(f"🧑‍🏫 **Modalidad de cursado:** {modalidad_visible(carrera_row)}")
                 if formacion:
                     st.caption(f"📘 {formacion}" + (f"  ·  {area}" if area else ""))
                 st.write(f"🏫 **Institución:** {institucion}")
