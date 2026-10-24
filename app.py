@@ -24,27 +24,52 @@ def _es_ies6(nombre):
     t = str(nombre).casefold()
     return bool(_re.search(r"(?:\bies\b|instituto de educaci[oó]n superior)\s*(?:n[.°ºo]*\s*)?6\b", t))
 df = df[~df["Institución"].map(_es_ies6)].copy()
-# La hoja de Google Drive es la fuente principal para los registros que contiene.
-# Si no está publicada para lectura, se conserva el respaldo local.
+# Google Sheets es la fuente principal. El CSV local es una copia reciente
+# del catálogo público: evita fichas viejas si la versión publicada de Sheets
+# todavía no se actualizó o si falla temporalmente la descarga.
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqkZDRlfoNYwLpzqnMi9AeVI-Y2stohIpvKVL2hr_Gy4Gp3Ay_gaOEvTNDDuDgVL1sypWyRw5EUX8M/pub?gid=2132573097&single=true&output=csv"
+SHEET_BACKUP = Path(__file__).with_name("carreras_actualizadas.csv")
+
 @st.cache_data(ttl=300, show_spinner=False)
 def load_google_sheet():
-    with urlopen(SHEET_CSV_URL, timeout=12) as respuesta:
-        contenido_csv = respuesta.read().decode("utf-8-sig")
-    tabla = pd.read_csv(io.StringIO(contenido_csv), dtype=str, keep_default_na=False)
-    required = {"Institución", "Localidad", "Carrera", "Tipo de formación"}
-    if not required.issubset(tabla.columns):
-        raise ValueError("La hoja compartida no tiene las columnas esperadas.")
+    campos_basicos = {"Institución", "Localidad", "Carrera", "Tipo de formación"}
+    campos_actualizados = {
+        "Sitio web institucional", "Teléfono institucional", "Correo institucional",
+        "Unidad académica", "Título otorgado", "Ingreso 2027",
+    }
+
+    copia = pd.read_csv(SHEET_BACKUP, dtype=str, keep_default_na=False) if SHEET_BACKUP.exists() else None
+    fuente = "respaldo actualizado de Google Sheets"
+    tabla = copia
+
+    try:
+        with urlopen(SHEET_CSV_URL, timeout=12) as respuesta:
+            contenido_csv = respuesta.read().decode("utf-8-sig")
+        publicada = pd.read_csv(io.StringIO(contenido_csv), dtype=str, keep_default_na=False)
+        publicada = publicada[publicada["Carrera"].astype(str).str.strip().ne("")].copy()
+        # Un enlace público de Sheets puede estar publicado con una versión
+        # antigua: nunca usarla si perdió campos nuevos o casi todas las carreras.
+        minimo = max(1, int(len(copia) * 0.90)) if copia is not None else 1
+        if (campos_basicos.issubset(publicada.columns)
+                and (copia is None or campos_actualizados.issubset(publicada.columns))
+                and len(publicada) >= minimo):
+            tabla = publicada
+            fuente = "Google Sheets"
+    except Exception:
+        pass  # Seguir con la copia completa y vigente, nunca con el Excel antiguo.
+
+    if tabla is None or not campos_basicos.issubset(tabla.columns):
+        raise ValueError("La base de carreras actualizada no está disponible.")
     tabla = tabla[tabla["Carrera"].astype(str).str.strip().ne("")].copy()
     tabla = tabla.rename(columns={
         "Carrera": "Carrera / título",
         "Área preliminar": "Área principal preliminar",
         "Sede/dirección": "Sede de cursado confirmada",
     })
-    return tabla
+    return tabla, fuente
 
 try:
-    google_df = load_google_sheet()
+    google_df, fuente_carreras = load_google_sheet()
     # Reemplazar en el respaldo las instituciones presentes en Sheets.
     # Así las bajas y correcciones en Drive no vuelven a aparecer desde Excel.
     # Equiparar "IES 10" con "INSTITUTO DE EDUCACIÓN SUPERIOR N° 10" del respaldo.
@@ -88,8 +113,10 @@ try:
         return clave not in claves_google
 
     df = df[df.apply(conservar_registro_historico, axis=1)].copy()
+    df["_registro_actualizado"] = False
+    google_df["_registro_actualizado"] = True
     df = pd.concat([df, google_df], ignore_index=True)
-    st.caption("📄 Oferta de gestión estatal · datos de Google Sheets actualizados aproximadamente cada 5 minutos.")
+    st.caption(f"📄 Oferta de gestión estatal · fuente: {fuente_carreras}. La plataforma consulta actualizaciones aproximadamente cada 5 minutos.")
 except Exception:
     st.caption("📄 Mostrando la copia de respaldo. Para activar la sincronización, publicá la pestaña Carreras como CSV en Google Sheets.")
 
@@ -373,6 +400,11 @@ def institucion_de_gestion_estatal(nombre):
 df = df[df["Institución"].map(institucion_de_gestion_estatal)].copy()
 
 # Evitar repeticiones de la misma carrera, institución y localidad.
+# Si están tanto en el Excel anterior como en la base vigente, DEBE ganar
+# la ficha de Google Sheets: contiene duración, contacto y sede confirmada.
+if "_registro_actualizado" in df.columns:
+    df["_registro_actualizado"] = df["_registro_actualizado"].fillna(False).astype(bool)
+    df = df.sort_values("_registro_actualizado", ascending=False, kind="stable")
 df["_clave_carrera"] = df["Carrera / título"].astype(str).str.strip().str.casefold()
 df["_clave_localidad"] = df["Localidad"].astype(str).str.strip().str.casefold()
 # Unificar variantes del nombre institucional (UNJu, UNJu - Facultad de...).
@@ -387,7 +419,7 @@ def _clave_institucion_canonica(valor):
     return " ".join(t.split())
 df["_clave_institucion"] = df["Institución"].map(_clave_institucion_canonica)
 df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
-df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
+df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion", "_registro_actualizado"], errors="ignore")
 import re
 import unicodedata
 
