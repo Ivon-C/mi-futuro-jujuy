@@ -57,11 +57,11 @@ try:
         return "ies " + numero.group(1) if numero else txt.strip()
     institutos_google = set(google_df["Institución"].map(clave_institucion))
     # Conservar las tecnicaturas y las demás carreras históricas de los IES
-    # incorporados ahora (3, 4, 5, 7 y 8). La ausencia de una tecnicatura
+    # estatales incorporados ahora (3, 4 y 5). La ausencia de una tecnicatura
     # de la planilla NO significa que el instituto haya dejado de dictarla.
     # Para los IES ya depurados (1, 2, 6, 9, 10 y 11) se mantienen las
     # decisiones previas para no reintroducir registros descartados.
-    conservar_respaldo_de = {"ies 3", "ies 4", "ies 5", "ies 7", "ies 8"}
+    conservar_respaldo_de = {"ies 3", "ies 4", "ies 5"}
     def clave_textual(valor):
         import unicodedata
         import re
@@ -89,7 +89,7 @@ try:
 
     df = df[df.apply(conservar_registro_historico, axis=1)].copy()
     df = pd.concat([df, google_df], ignore_index=True)
-    st.caption("📄 Datos de Google Sheets · actualización automática aproximadamente cada 5 minutos.")
+    st.caption("📄 Oferta de gestión estatal · datos de Google Sheets actualizados aproximadamente cada 5 minutos.")
 except Exception:
     st.caption("📄 Mostrando la copia de respaldo. Para activar la sincronización, publicá la pestaña Carreras como CSV en Google Sheets.")
 
@@ -346,6 +346,32 @@ umbrella = df["Carrera / título"].astype(str).str.contains(
     case=False, regex=False
 )
 df = df.loc[~umbrella].copy()
+# Esta plataforma presenta exclusivamente carreras de gestión ESTATAL.
+# Algunos institutos numerados son de gestión privada (IES 7 Populorum
+# Progressio e IES 8 Sagrado Corazón FASTA); tener número de IES no implica
+# pertenecer a la oferta pública provincial. Se aplica el filtro también
+# a carreras del respaldo histórico, aunque Google Sheets no esté disponible.
+def institucion_de_gestion_estatal(nombre):
+    import re
+    import unicodedata
+    texto = "".join(ch for ch in unicodedata.normalize("NFKD", str(nombre).casefold())
+                    if not unicodedata.combining(ch))
+    if any(part in texto for part in ("populorum", "fasta", "sagrado corazon")):
+        return False
+    ies = re.search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", texto)
+    if ies:
+        return int(ies.group(1)) in {1, 2, 3, 4, 5, 6, 9, 10, 11}
+    return any(s in texto for s in (
+        "unju", "universidad nacional de jujuy",
+        "utn", "universidad tecnologica nacional",
+        "universidad nacional de salta", "unsa",
+        "instituto superior de artes", "escuela superior de musica",
+        "escuela superior de danza", "escuela provincial de teatro",
+        "escuela provincial de artes",
+    ))
+
+df = df[df["Institución"].map(institucion_de_gestion_estatal)].copy()
+
 # Evitar repeticiones de la misma carrera, institución y localidad.
 df["_clave_carrera"] = df["Carrera / título"].astype(str).str.strip().str.casefold()
 df["_clave_localidad"] = df["Localidad"].astype(str).str.strip().str.casefold()
