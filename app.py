@@ -509,7 +509,7 @@ def mostrar_informacion_y_contacto(row):
     if not detalles:
         return
     st.markdown("**🌐 Información y contacto**")
-    st.markdown("  \\n".join(detalles))
+    st.markdown("  \n".join(detalles))
 
 
 def ingreso_2027_visible(row):
