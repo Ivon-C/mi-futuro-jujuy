@@ -458,6 +458,23 @@ def mostrar_contacto_institucional(row):
     st.markdown("**📬 Contacto del instituto:** " + "  ·  ".join(enlaces))
 
 
+
+def mostrar_pagina_abogacia(row):
+    """Enlace directo a la carrera de Abogacía UNJu, también con respaldo local."""
+    carrera = normalize(row.get("Carrera / título", ""))
+    institucion = normalize(row.get("Institución", ""))
+    if carrera != "abogacia" or not (
+        "unju" in institucion or "universidad nacional de jujuy" in institucion
+    ):
+        return
+    # Enlace oficial confirmado; permite acceder aun cuando la fuente CSV
+    # temporalmente no contenga las columnas nuevas de contacto.
+    st.markdown(
+        "🔗 **[Página oficial de Abogacía – UNJu]"
+        "(https://escuelajuridica.unju.edu.ar/abogacia/)**"
+    )
+
+
 def ingreso_2027_visible(row):
     """Ingreso 2027: mostrar solo datos oficiales aportados en la base."""
     from urllib.parse import urlsplit
@@ -1315,6 +1332,7 @@ if seleccion_nav=="📍 Mapa":
                 for _, item in grouped.sort_values(career).iterrows():
                     with st.container(border=True):
                         st.markdown(f"**🎓 {item[career]}**")
+                        mostrar_pagina_abogacia(item)
                         tipo_formacion = visible_value(item.get("Tipo de formación", ""))
                         if tipo_formacion:
                             st.caption(f"📚 Tipo de formación: {tipo_formacion}")
@@ -1384,6 +1402,7 @@ if seleccion_nav=="🎓 Buscá carreras":
             with st.container(border=True):
                 if nombre:
                     st.markdown(f"#### 🎓 {nombre}")
+                mostrar_pagina_abogacia(carrera_row)
                 duracion = duracion_visible(carrera_row)
                 if duracion:
                     st.write(f"⏳ **Duración:** {duracion}")
