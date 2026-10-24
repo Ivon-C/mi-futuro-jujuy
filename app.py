@@ -475,36 +475,46 @@ def contacto_institucional_visible(row):
     return sitio, telefono, correo
 
 
+def enlace_oficial_carrera(row):
+    """Enlace oficial de la carrera si consta en la base y es una URL válida."""
+    from urllib.parse import urlsplit
+    enlace = visible_value(row.get("Enlace oficial", ""))
+    if not enlace:
+        return ""
+    try:
+        url = urlsplit(enlace)
+        if url.scheme not in ("http", "https") or not url.netloc:
+            return ""
+        if any(c in enlace for c in (" ", "<", ">", "(", ")")):
+            return ""
+    except ValueError:
+        return ""
+    return enlace
+
+
+def mostrar_pagina_carrera(row):
+    """Para todas las carreras: fuente oficial; si falta, web institucional."""
+    oficial = enlace_oficial_carrera(row)
+    sitio, _, _ = contacto_institucional_visible(row)
+    if oficial:
+        st.markdown(f"🔗 **[Ver información oficial de la carrera]({oficial})**")
+    elif sitio:
+        st.markdown(f"🌐 **[Ver sitio web institucional]({sitio})**")
+
+
 def mostrar_contacto_institucional(row):
-    """Sección pública de contacto, solo con datos disponibles."""
+    """Mostrar contactos existentes sin repetir el enlace principal de la ficha."""
     sitio, telefono, correo = contacto_institucional_visible(row)
-    if not any((sitio, telefono, correo)):
-        return
+    oficial = enlace_oficial_carrera(row)
     enlaces = []
-    if sitio:
+    if sitio and oficial and sitio != oficial:
         enlaces.append(f"🌐 [Sitio web institucional]({sitio})")
     if telefono:
         enlaces.append(f"📞 {telefono}")
     if correo:
         enlaces.append(f"✉️ [{correo}](mailto:{correo})")
-    st.markdown("**📬 Contacto del instituto:** " + "  ·  ".join(enlaces))
-
-
-
-def mostrar_pagina_abogacia(row):
-    """Enlace directo a la carrera de Abogacía UNJu, también con respaldo local."""
-    carrera = normalize(row.get("Carrera / título", ""))
-    institucion = normalize(row.get("Institución", ""))
-    if carrera != "abogacia" or not (
-        "unju" in institucion or "universidad nacional de jujuy" in institucion
-    ):
-        return
-    # Enlace oficial confirmado; permite acceder aun cuando la fuente CSV
-    # temporalmente no contenga las columnas nuevas de contacto.
-    st.markdown(
-        "🔗 **[Página oficial de Abogacía – UNJu]"
-        "(https://escuelajuridica.unju.edu.ar/abogacia/)**"
-    )
+    if enlaces:
+        st.markdown("**📬 Contacto del instituto:** " + "  ·  ".join(enlaces))
 
 
 def ingreso_2027_visible(row):
@@ -549,6 +559,7 @@ public_fields = [
     "Sede de cursado confirmada", "Lugar donde se dicta",
     "Sitio web institucional", "Teléfono institucional", "Correo institucional",
     "Título otorgado", "Unidad académica", "Ingreso 2027", "Enlace de ingreso 2027",
+    "Enlace oficial",
 ]
 for field in public_fields:
     if field in df.columns:
@@ -577,13 +588,22 @@ def results(frame):
         frame = frame.copy()
         frame["Duración"] = frame.apply(duracion_visible, axis=1)
         frame["Modalidad"] = frame.apply(modalidad_visible, axis=1)
-        display_cols = ["Institución", town, career, "Tipo de formación", "Duración", "Modalidad", "Área principal preliminar"]
+        frame["Página web"] = frame.apply(
+            lambda row: enlace_oficial_carrera(row) or contacto_institucional_visible(row)[0],
+            axis=1,
+        )
+        display_cols = ["Institución", town, career, "Tipo de formación", "Duración", "Modalidad", "Área principal preliminar", "Página web"]
         display_cols = [column for column in display_cols if column in frame.columns]
         for column in display_cols:
             frame[column] = frame[column].map(visible_value)
         display_cols = [column for column in display_cols if frame[column].ne("").any()]
         if display_cols:
-            st.dataframe(frame[display_cols], hide_index=True, use_container_width=True)
+            st.dataframe(
+                frame[display_cols], hide_index=True, use_container_width=True,
+                column_config={
+                    "Página web": st.column_config.LinkColumn("🌐 Página web", display_text="Abrir")
+                } if "Página web" in display_cols else {},
+            )
 # Sedes de cursado del IES N.º 10 informadas por la docente.
 # No mostrar datos de sede cuando no están confirmados.
 def sede_ies10(row):
@@ -954,8 +974,11 @@ with st.container(key="cifac_launcher"):
                         aviso = alcance_sede_visible(item)
                         if aviso:
                             lines.append(f"ℹ️ {aviso}")
+                        pagina = enlace_oficial_carrera(item)
                         sitio, _, _ = contacto_institucional_visible(item)
-                        if sitio:
+                        if pagina:
+                            lines.append(f"🔗 [Información oficial de la carrera]({pagina})")
+                        if sitio and sitio != pagina:
                             lines.append(f"🌐 [Sitio web institucional]({sitio})")
                         _, ingreso_link = ingreso_2027_visible(item)
                         if ingreso_link:
@@ -983,8 +1006,11 @@ with st.container(key="cifac_launcher"):
                     location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
                     response = f"Encontré estas opciones registradas{location_text}:\n\n"
                     for _, item in found.head(8).iterrows():
+                        pagina = enlace_oficial_carrera(item)
                         sitio, _, _ = contacto_institucional_visible(item)
-                        enlace = f" · [🌐 Sitio institucional]({sitio})" if sitio else ""
+                        url = pagina or sitio
+                        etiqueta = "Información oficial" if pagina else "Sitio institucional"
+                        enlace = f" · [🔗 {etiqueta}]({url})" if url else ""
                         response += f"- **{item[career]}** — {item['Institución']} ({item[town]}){enlace}\n"
                     if len(found) > 8:
                         response += f"\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\n"
@@ -1364,7 +1390,7 @@ if seleccion_nav=="📍 Mapa":
                 for _, item in grouped.sort_values(career).iterrows():
                     with st.container(border=True):
                         st.markdown(f"**🎓 {item[career]}**")
-                        mostrar_pagina_abogacia(item)
+                        mostrar_pagina_carrera(item)
                         tipo_formacion = visible_value(item.get("Tipo de formación", ""))
                         if tipo_formacion:
                             st.caption(f"📚 Tipo de formación: {tipo_formacion}")
@@ -1434,7 +1460,7 @@ if seleccion_nav=="🎓 Buscá carreras":
             with st.container(border=True):
                 if nombre:
                     st.markdown(f"#### 🎓 {nombre}")
-                mostrar_pagina_abogacia(carrera_row)
+                mostrar_pagina_carrera(carrera_row)
                 duracion = duracion_visible(carrera_row)
                 if duracion:
                     st.write(f"⏳ **Duración:** {duracion}")
