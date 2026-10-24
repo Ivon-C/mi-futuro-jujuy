@@ -399,6 +399,39 @@ def visible_value(value):
     return text
 
 
+def contacto_institucional_visible(row):
+    """Datos de contacto confirmados: sin campos vacíos, URLs inválidas ni marcadores."""
+    from urllib.parse import urlsplit
+    sitio = visible_value(row.get("Sitio web institucional", ""))
+    if sitio:
+        try:
+            enlace = urlsplit(sitio)
+            if enlace.scheme not in ("https", "http") or not enlace.netloc or any(x in sitio for x in (" ", "<", ">", "(", ")")):
+                sitio = ""
+        except ValueError:
+            sitio = ""
+    telefono = visible_value(row.get("Teléfono institucional", ""))
+    correo = visible_value(row.get("Correo institucional", ""))
+    if correo and not re.fullmatch(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}", correo):
+        correo = ""
+    return sitio, telefono, correo
+
+
+def mostrar_contacto_institucional(row):
+    """Sección pública de contacto, solo con datos disponibles."""
+    sitio, telefono, correo = contacto_institucional_visible(row)
+    if not any((sitio, telefono, correo)):
+        return
+    enlaces = []
+    if sitio:
+        enlaces.append(f"🌐 [Sitio web institucional]({sitio})")
+    if telefono:
+        enlaces.append(f"📞 {telefono}")
+    if correo:
+        enlaces.append(f"✉️ [{correo}](mailto:{correo})")
+    st.markdown("**📬 Contacto del instituto:** " + "  ·  ".join(enlaces))
+
+
 def alcance_sede_visible(row):
     """Aviso importante: algunas sedes ofrecen solo el primer año."""
     obs = normalize(row.get("Observación", ""))
@@ -413,6 +446,7 @@ public_fields = [
     "Institución", "Localidad", "Carrera / título", "Tipo de formación",
     "Área principal preliminar", "Duración", "Modalidad", "Facultad",
     "Sede de cursado confirmada", "Lugar donde se dicta",
+    "Sitio web institucional", "Teléfono institucional", "Correo institucional",
 ]
 for field in public_fields:
     if field in df.columns:
@@ -818,6 +852,9 @@ with st.container(key="cifac_launcher"):
                         aviso = alcance_sede_visible(item)
                         if aviso:
                             lines.append(f"ℹ️ {aviso}")
+                        sitio, _, _ = contacto_institucional_visible(item)
+                        if sitio:
+                            lines.append(f"🌐 [Sitio web institucional]({sitio})")
                         lines.append("")
                     lines.append("*Registros históricos: verificá la oferta actual, sede y gratuidad con la institución.*")
                     response = "\n".join(lines)
@@ -841,7 +878,9 @@ with st.container(key="cifac_launcher"):
                     location_text = f" en {', '.join(selected_localities)}" if selected_localities else " en Jujuy"
                     response = f"Encontré estas opciones registradas{location_text}:\n\n"
                     for _, item in found.head(8).iterrows():
-                        response += f"- **{item[career]}** — {item['Institución']} ({item[town]})\n"
+                        sitio, _, _ = contacto_institucional_visible(item)
+                        enlace = f" · [🌐 Sitio institucional]({sitio})" if sitio else ""
+                        response += f"- **{item[career]}** — {item['Institución']} ({item[town]}){enlace}\n"
                     if len(found) > 8:
                         response += f"\nHay {len(found) - 8} opciones adicionales. Podés precisar tu consulta.\n"
                     response += "\n*Información histórica sin verificar: confirmá carreras, sedes y gratuidad con cada institución.*"
@@ -1243,6 +1282,7 @@ if seleccion_nav=="📍 Mapa":
                             sede = visible_value(item.get("Lugar donde se dicta", ""))
                         if sede:
                             st.caption(f"📍 Sede: {sede}")
+                        mostrar_contacto_institucional(item)
                         area = visible_value(item.get("Área principal preliminar", ""))
                         if area:
                             st.caption(f"Área: {area}")
@@ -1299,6 +1339,7 @@ if seleccion_nav=="🎓 Buscá carreras":
                     st.write(f"📍 **Localidad:** {localidad}")
                 if sede:
                     st.write(f"🏢 **Sede de cursado:** {sede}")
+                mostrar_contacto_institucional(carrera_row)
                 if aviso:
                     st.caption(f"ℹ️ {aviso}")
 if seleccion_nav=="📊 Mis intereses":
