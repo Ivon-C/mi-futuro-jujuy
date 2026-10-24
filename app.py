@@ -500,9 +500,8 @@ def modalidad_visible(row):
     localidad = normalize(row.get("Localidad", ""))
     institucion = normalize(row.get("Institución", ""))
     if titulo == "licenciatura en ciencia politica":
-        # La modalidad formal publicada es presencial, con clases virtuales
-        # y algunas evaluaciones presenciales informadas por la docente.
-        return "Clases virtuales; algunos exámenes presenciales (modalidad oficial: presencial)"
+        # La estudiante confirmó que cursa con clases virtuales y algunos exámenes presenciales.
+        return "Virtual · algunos exámenes presenciales"
     if titulo == "tecnicatura universitaria en transformacion de la produccion agropecuaria":
         if localidad == "abra pampa":
             return "Modalidad especial: 75 % virtual y 25 % presencial intensiva al final del cuatrimestre"
