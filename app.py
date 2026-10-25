@@ -1602,6 +1602,7 @@ if seleccion_nav=="📊 Mis intereses":
             st.session_state.intereses_paso = 0
             st.session_state.intereses_respuestas = {}
             st.session_state.intereses_finalizado = False
+            st.session_state.pop("intereses_area_carreras", None)
             for k in list(st.session_state.keys()):
                 if k.startswith("intereses_opcion_v2_"):
                     del st.session_state[k]
@@ -1655,28 +1656,57 @@ if seleccion_nav=="📊 Mis intereses":
                 st.write("Estas son las áreas en las que expresaste mayor interés. Un empate no significa que una sea más importante que otra.")
                 fondos = ["#F0E8FF", "#E5F5F4", "#FFF1DB"]
                 acentos = ["#6D35B5", "#087C79", "#A66312"]
-                for pos, area in enumerate(destacadas, 1):
+                iconos_areas = {
+                    "Tecnología e informática": "💻",
+                    "Ingeniería, industria y construcción": "🏗️",
+                    "Ciencias exactas": "🧮",
+                    "Ciencias naturales y ambiente": "🌿",
+                    "Producción agropecuaria y alimentaria": "🌾",
+                    "Salud y bienestar": "🩺",
+                    "Educación y enseñanza": "📚",
+                    "Lenguas, literatura y escritura": "📖",
+                    "Filosofía, historia y antropología": "🏺",
+                    "Derecho, política y sociedad": "⚖️",
+                    "Comunicación y medios": "🎙️",
+                    "Arte, diseño y creatividad": "🎨",
+                    "Economía, administración y gestión": "📊",
+                    "Turismo, gastronomía y patrimonio": "🧭",
+                }
+                columnas_podio = st.columns(len(destacadas))
+                for pos, (columna_podio, area) in enumerate(zip(columnas_podio, destacadas), 1):
                     empate = pos > 1 and resultados[area] == resultados[destacadas[pos - 2]]
                     titulo = f"{pos}° área destacada · mismo interés que la anterior" if empate else f"{pos}° lugar"
-                    st.markdown(
-                        f"""<div style="background:{fondos[pos-1]};border-left:6px solid {acentos[pos-1]};border-radius:14px;padding:20px 24px;margin:12px 0;">
-                        <div style="color:{acentos[pos-1]};font-size:21px;font-weight:800;">{titulo}</div>
-                        <div style="color:#20242c;font-size:23px;font-weight:750;margin:5px 0 9px;">{area}</div>
-                        <div style="color:#414852;font-size:15px;">Interés promedio: {resultados[area]:.1f} de 4 · Respuestas de incertidumbre: {incertidumbre[area]}</div>
-                        </div>""", unsafe_allow_html=True
-                    )
-                st.markdown("### 🎓 Carreras para seguir explorando")
-                st.caption("Las recomendaciones se vinculan por el nombre y campo de las carreras disponibles en la base. Una carrera puede aparecer en varias áreas. Verificá la oferta, las sedes y los requisitos de ingreso.")
-                for area in destacadas:
-                    st.markdown(f"**{area}**")
-                    coinciden = df[df[career].fillna("").astype(str).map(lambda nombre: area in _afinidades_carrera(nombre))]
+                    with columna_podio:
+                        st.markdown(
+                            f"""<div style="height:190px;background:linear-gradient(145deg,{fondos[pos-1]},#ffffff);border:1px solid {acentos[pos-1]}33;border-top:5px solid {acentos[pos-1]};border-radius:18px;padding:20px 18px;margin:8px 0;box-shadow:0 8px 22px rgba(29,45,75,.08);">
+                            <div style="font-size:34px;line-height:1.1;">{iconos_areas.get(area, "✨")}</div>
+                            <div style="color:{acentos[pos-1]};font-size:16px;font-weight:800;margin-top:10px;">{titulo}</div>
+                            <div style="color:#20242c;font-size:20px;font-weight:750;margin:6px 0 10px;">{area}</div>
+                            <div style="color:#414852;font-size:14px;">Interés promedio: {resultados[area]:.1f} de 4</div>
+                            </div>""",
+                            unsafe_allow_html=True,
+                        )
+                        if st.button("🎓 Ver carreras", key=f"ver_carreras_resultado_{pos}", use_container_width=True):
+                            st.session_state["intereses_area_carreras"] = area
+
+                area_carreras_seleccionada = st.session_state.get("intereses_area_carreras")
+                if area_carreras_seleccionada in destacadas:
+                    st.markdown(f"### 🎓 Carreras vinculadas con {area_carreras_seleccionada}")
+                    st.caption("Explorá las carreras relacionadas con esta área. Una carrera puede vincularse con más de un campo. Verificá la oferta, las sedes y los requisitos de ingreso.")
+                    coinciden = df[df[career].fillna("").astype(str).map(
+                        lambda nombre: area_carreras_seleccionada in _afinidades_carrera(nombre)
+                    )]
                     if coinciden.empty:
-                        st.caption("Todavía no hay carreras asociadas a esta área en los registros disponibles.")
+                        st.info("Todavía no hay carreras asociadas a esta área en los registros disponibles.")
                     else:
                         columnas = [career, town, "Institución"]
                         coinciden = coinciden[columnas].drop_duplicates()
                         st.dataframe(coinciden, hide_index=True, use_container_width=True)
-                st.caption("Algunos profesorados universitarios requieren estudios previos; no todas las carreras son de ingreso directo desde la secundaria.")
+                    st.caption("Algunos profesorados universitarios requieren estudios previos; no todas las carreras son de ingreso directo desde la secundaria.")
+                    if st.button("↑ Volver al podio", key="cerrar_carreras_resultado"):
+                        st.session_state.pop("intereses_area_carreras", None)
+                        st.rerun()
+                st.caption("También podés abrir el botón de cada área para consultar sus carreras.")
             else:
                 st.info("Marcaste «No estoy seguro/a» en todas las actividades. Podés explorar las áreas antes de decidir.")
             total = sum(incertidumbre.values())
@@ -1684,77 +1714,117 @@ if seleccion_nav=="📊 Mis intereses":
                 st.write(f"Marcaste «No estoy seguro/a» en {total} actividades.")
             st.caption("Este resultado es orientativo, no mide capacidades ni determina qué estudiar.")
 
-
-            st.markdown("---")
-            st.subheader("📝 Tu experiencia con Mi Futuro Jujuy")
-            st.write("Tu opinión nos ayuda a mejorar la información y las herramientas de la app.")
-            if st.session_state.get("encuesta_mi_futuro_enviada"):
-                st.success("¡Gracias! Tu respuesta quedó registrada.")
-            else:
-                edad = st.number_input(
-                    "¿Qué edad tenés?",
-                    min_value=10,
-                    max_value=99,
-                    value=None,
-                    step=1,
-                    help="Escribí solo tu edad en números. No se admiten letras.",
-                    key="encuesta_edad",
-                )
-                carrera_encontrada = st.radio(
-                    "¿Encontraste en la app la carrera que te interesa?",
-                    ["Sí", "No"],
-                    index=None,
-                    key="encuesta_carrera_encontrada",
-                )
-                carrera_faltante = ""
-                if carrera_encontrada == "No":
-                    carrera_faltante = st.text_input(
-                        "¿Qué carrera buscabas y no encontraste?",
-                        key="encuesta_carrera_faltante",
-                    ).strip()
-                mejoras = st.text_area(
-                    "¿Qué mejorarías o agregarías en la app?",
-                    key="encuesta_mejoras",
-                    help="Esta respuesta es opcional.",
-                )
-                if st.button("Enviar encuesta", type="primary", key="enviar_encuesta_mi_futuro"):
-                    if edad is None:
-                        st.warning("Ingresá tu edad usando solo números.")
-                    elif carrera_encontrada is None:
-                        st.warning("Indicá si encontraste la carrera que te interesa.")
-                    elif carrera_encontrada == "No" and not carrera_faltante:
-                        st.warning("Contanos qué carrera buscabas y no encontraste.")
-                    else:
-                        try:
-                            survey_webhook_url = str(st.secrets.get("survey_webhook_url", "")).strip()
-                        except Exception:
-                            survey_webhook_url = ""
-                        if not survey_webhook_url:
-                            st.error("La encuesta está lista, pero falta conectar el envío a la hoja de respuestas.")
+            st.markdown("""
+            <style>
+            .st-key-encuesta_visual {
+                background: linear-gradient(135deg, #f3eaff 0%, #e6f7f5 58%, #fff5df 100%);
+                border: 1px solid #d9c7f4;
+                border-radius: 22px;
+                padding: 1.25rem 1.4rem;
+                box-shadow: 0 10px 28px rgba(57, 48, 103, 0.09);
+            }
+            .st-key-encuesta_visual [data-testid="stWidgetLabel"] p {
+                color: #17345f;
+                font-weight: 650;
+            }
+            .st-key-encuesta_visual button[kind="primary"] {
+                background: linear-gradient(90deg, #7138c8, #078b87);
+                color: white;
+                border: 0;
+                border-radius: 12px;
+                font-weight: 750;
+                min-height: 3rem;
+            }
+            .st-key-encuesta_visual button[kind="primary"]:hover {
+                background: linear-gradient(90deg, #5925a7, #066b68);
+                color: white;
+            }
+            @media (max-width: 640px) {
+                .st-key-encuesta_visual { padding: .75rem; }
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            with st.container(key="encuesta_visual", border=True):
+                st.markdown("""
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:8px 4px 14px;">
+                    <div>
+                        <span style="display:inline-block;background:#ffffffb8;color:#6531ad;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;letter-spacing:.08em;">TU EXPERIENCIA CUENTA</span>
+                        <h2 style="color:#17345f;margin:12px 0 6px;font-size:30px;">Ayudanos a mejorar Mi Futuro Jujuy</h2>
+                        <p style="color:#40516c;margin:0;font-size:16px;">Tu opinión ayuda a que más jóvenes encuentren información útil para pensar su futuro.</p>
+                    </div>
+                    <div aria-hidden="true" style="flex:0 0 112px;width:112px;height:112px;border-radius:32px;background:linear-gradient(145deg,#7138c8,#08a39a);display:flex;align-items:center;justify-content:center;font-size:56px;box-shadow:0 12px 24px rgba(71,49,139,.2);">💬</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.caption("Completá estas preguntas breves al terminar la exploración.")
+                if st.session_state.get("encuesta_mi_futuro_enviada"):
+                    st.success("¡Gracias! Tu respuesta quedó registrada.")
+                else:
+                    edad = st.number_input(
+                        "¿Qué edad tenés?",
+                        min_value=10,
+                        max_value=99,
+                        value=None,
+                        step=1,
+                        help="Escribí solo tu edad en números. No se admiten letras.",
+                        key="encuesta_edad",
+                    )
+                    carrera_encontrada = st.radio(
+                        "¿Encontraste en la app la carrera que te interesa?",
+                        ["Sí", "No"],
+                        index=None,
+                        horizontal=True,
+                        key="encuesta_carrera_encontrada",
+                    )
+                    carrera_faltante = ""
+                    if carrera_encontrada == "No":
+                        carrera_faltante = st.text_input(
+                            "¿Qué carrera buscabas y no encontraste?",
+                            key="encuesta_carrera_faltante",
+                        ).strip()
+                    mejoras = st.text_area(
+                        "¿Qué mejorarías o agregarías en la app?",
+                        key="encuesta_mejoras",
+                        help="Esta respuesta es opcional.",
+                        height=110,
+                    )
+                    if st.button("Enviar mi opinión", type="primary", key="enviar_encuesta_mi_futuro", use_container_width=True):
+                        if edad is None:
+                            st.warning("Ingresá tu edad usando solo números.")
+                        elif carrera_encontrada is None:
+                            st.warning("Indicá si encontraste la carrera que te interesa.")
+                        elif carrera_encontrada == "No" and not carrera_faltante:
+                            st.warning("Contanos qué carrera buscabas y no encontraste.")
                         else:
                             try:
-                                from urllib.request import Request
-                                payload = json.dumps({
-                                    "edad": int(edad),
-                                    "carrera_encontrada": carrera_encontrada,
-                                    "carrera_faltante": carrera_faltante,
-                                    "mejoras": mejoras.strip(),
-                                }).encode("utf-8")
-                                solicitud = Request(
-                                    survey_webhook_url,
-                                    data=payload,
-                                    headers={"Content-Type": "application/json"},
-                                    method="POST",
-                                )
-                                with urlopen(solicitud, timeout=20) as respuesta_webhook:
-                                    resultado_webhook = json.loads(respuesta_webhook.read().decode("utf-8"))
-                                if resultado_webhook.get("ok"):
-                                    st.session_state.encuesta_mi_futuro_enviada = True
-                                    st.rerun()
-                                else:
-                                    st.error("No se pudo guardar la respuesta. Revisá los datos e intentá nuevamente.")
+                                survey_webhook_url = str(st.secrets.get("survey_webhook_url", "")).strip()
                             except Exception:
-                                st.error("No se pudo enviar la respuesta a la hoja. Intentá nuevamente más tarde.")
+                                survey_webhook_url = ""
+                            if not survey_webhook_url:
+                                st.error("La encuesta está lista, pero falta conectar el envío a la hoja de respuestas.")
+                            else:
+                                try:
+                                    from urllib.request import Request
+                                    payload = json.dumps({
+                                        "edad": int(edad),
+                                        "carrera_encontrada": carrera_encontrada,
+                                        "carrera_faltante": carrera_faltante,
+                                        "mejoras": mejoras.strip(),
+                                    }).encode("utf-8")
+                                    solicitud = Request(
+                                        survey_webhook_url,
+                                        data=payload,
+                                        headers={"Content-Type": "application/json"},
+                                        method="POST",
+                                    )
+                                    with urlopen(solicitud, timeout=20) as respuesta_webhook:
+                                        resultado_webhook = json.loads(respuesta_webhook.read().decode("utf-8"))
+                                    if resultado_webhook.get("ok"):
+                                        st.session_state.encuesta_mi_futuro_enviada = True
+                                        st.rerun()
+                                    else:
+                                        st.error("No se pudo guardar la respuesta. Revisá los datos e intentá nuevamente.")
+                                except Exception:
+                                    st.error("No se pudo enviar la respuesta a la hoja. Intentá nuevamente más tarde.")
 
 st.divider()
 st.caption("Mi Futuro Jujuy · Prototipo educativo · Información en revisión")
