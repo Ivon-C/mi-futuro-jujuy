@@ -78,7 +78,7 @@ def mostrar_pregunta_interes(questions, opciones):
                 seleccionada = st.session_state.get(clave) == opcion
                 if " — " in opcion:
                     numero, etiqueta = opcion.split(" — ", 1)
-                    texto_boton = f"**{numero}**  \\n{etiqueta}"
+                    texto_boton = f"**{numero}**  \n{etiqueta}"
                 else:
                     texto_boton = opcion
                 st.button(
