@@ -1237,6 +1237,45 @@ div[class*="st-key-ir_01"] button,div[class*="st-key-ir_02"] button,div[class*="
 </style>
 """,unsafe_allow_html=True)
 st.markdown('<div class="mf-brand">🏔️ Mi Futuro <em>Jujuy</em> <span style="font-size:.67rem;letter-spacing:2px;font-weight:600;color:#173c68"> EXPLORÁ · CONOCÉ · ELEGÍ</span></div>',unsafe_allow_html=True)
+
+def _normalizar_interes(texto):
+    return "".join(letra for letra in unicodedata.normalize("NFKD", str(texto).casefold()) if not unicodedata.combining(letra))
+
+def _afinidades_carrera(nombre):
+    n = normalize(nombre)
+    etiquetas = set()
+    def agregar(area, *palabras):
+        if any(p in n for p in palabras):
+            etiquetas.add(area)
+    agregar("Tecnología e informática", "informatica", "software", "programacion", "programador", "sistemas", "datos", "inteligencia artificial", "videojuegos", "soporte de infraestructura", "infraestructura de tecnologia de la informacion")
+    agregar("Ingeniería, industria y construcción", "ingenieria quimica", "ingenieria industrial", "ingenieria de minas", "perforacion", "arquitectura", "construccion", "higiene y seguridad", "mantenimiento industrial", "energias renovables")
+    agregar("Ciencias exactas", "matematica", "fisica", "quimica", "geolog")
+    agregar("Ciencias naturales y ambiente", "biolog", "ambient", "forestal", "agronom", "geolog", "ecolog", "desarrollo rural")
+    agregar("Producción agropecuaria y alimentaria", "agro", "alimento", "bromatolog", "granja", "forestal", "agricola", "cocina regional", "desarrollo rural")
+    agregar("Salud y bienestar", "medicina", "enfermer", "salud", "seguridad e higiene")
+    agregar("Educación y enseñanza", "profesorado", "educacion", "docencia", "formacion docente")
+    agregar("Lenguas, literatura y escritura", "ingles", "frances", "portugues", "letras", "literatura", "editorial", "lengua")
+    agregar("Filosofía, historia y antropología", "filosofia", "historia", "antropolog")
+    agregar("Derecho, política y sociedad", "abogac", "derecho", "politic", "trabajo social", "ninez", "adolescencia", "familia")
+    agregar("Comunicación y medios", "comunicacion", "periodismo", "medios", "editorial")
+    agregar("Arte, diseño y creatividad", "arte", "artistic", "diseno", "musica", "teatro", "danza", "videojuegos")
+    agregar("Economía, administración y gestión", "administracion", "contador", "economia", "gestion empresarial")
+    agregar("Turismo, gastronomía y patrimonio", "turismo", "gastronom", "cocina", "cultura alimentaria")
+    if "ingenieria informatica" in n:
+        etiquetas.add("Ingeniería, industria y construcción")
+    if "economia politica" in n:
+        etiquetas.add("Derecho, política y sociedad")
+    if "tecnologia de los alimentos" in n or "tecnologias de los alimentos" in n:
+        etiquetas.add("Ingeniería, industria y construcción")
+    return etiquetas
+
+def abrir_carreras_por_area(area):
+    st.session_state["area_busqueda_pendiente"] = area
+    st.session_state["mf_nav_pendiente"] = "🎓 Buscá carreras"
+    st.session_state["busqueda_carrera"] = ""
+    st.session_state["searchloc"] = "Todas las localidades"
+    st.session_state["searchtipo"] = "Todas las formaciones"
+
 opciones_nav=["🏠 Inicio","🧭 Explorá","📊 Mis intereses","🎓 Buscá carreras","📍 Mapa"]
 if "mf_nav" not in st.session_state:
     st.session_state.mf_nav="🏠 Inicio"
@@ -1244,6 +1283,8 @@ if "mf_nav" not in st.session_state:
 # StreamlitWidgetAlreadyInstantiatedError al usar los botones de acceso.
 if "mf_nav_pendiente" in st.session_state:
     st.session_state.mf_nav = st.session_state.pop("mf_nav_pendiente")
+if "area_busqueda_pendiente" in st.session_state:
+    st.session_state["filtro_area_busqueda"] = st.session_state.pop("area_busqueda_pendiente")
 seleccion_nav=st.segmented_control("Secciones",opciones_nav,key="mf_nav",label_visibility="collapsed")
 if seleccion_nav is None:
     seleccion_nav="🏠 Inicio"
@@ -1301,6 +1342,15 @@ if seleccion_nav=="🧭 Explorá":
             with columna:
                 with st.expander(nombre):
                     st.write(descripcion)
+                    area = nombre.split(" ", 1)[1]
+                    if st.button(
+                        "Ver carreras de esta área →",
+                        key=f"explora_carreras_area_{inicio}_{area}",
+                        use_container_width=True,
+                        on_click=abrir_carreras_por_area,
+                        args=(area,),
+                    ):
+                        pass
     if st.button("Descubrir mis intereses →",type="primary",key="explora_a_intereses"):
         st.session_state.mf_nav_pendiente = "📊 Mis intereses"
         st.rerun()
@@ -1556,11 +1606,36 @@ if seleccion_nav=="🎓 Buscá carreras":
         loc = st.selectbox("📍 Localidad", ["Todas las localidades"] + towns, key="searchloc")
     tipos = sorted(t for t in df["Tipo de formación"].unique() if visible_value(t))
     tipo = st.selectbox("🎓 Tipo de formación", ["Todas las formaciones"] + tipos, key="searchtipo")
+    areas_disponibles = [
+        "Tecnología e informática",
+        "Ingeniería, industria y construcción",
+        "Ciencias exactas",
+        "Ciencias naturales y ambiente",
+        "Producción agropecuaria y alimentaria",
+        "Salud y bienestar",
+        "Educación y enseñanza",
+        "Lenguas, literatura y escritura",
+        "Filosofía, historia y antropología",
+        "Derecho, política y sociedad",
+        "Comunicación y medios",
+        "Arte, diseño y creatividad",
+        "Economía, administración y gestión",
+        "Turismo, gastronomía y patrimonio",
+    ]
+    area_seleccionada = st.selectbox(
+        "🧭 Área de interés",
+        ["Todas las áreas"] + areas_disponibles,
+        key="filtro_area_busqueda",
+    )
     subset = df.copy()
     if loc != "Todas las localidades":
         subset = subset[subset[town] == loc]
     if tipo != "Todas las formaciones":
         subset = subset[subset["Tipo de formación"] == tipo]
+    if area_seleccionada != "Todas las áreas":
+        subset = subset[subset[career].astype(str).map(
+            lambda nombre: area_seleccionada in _afinidades_carrera(nombre)
+        )]
     if q.strip():
         consulta = normalize(q.strip())
         subset = subset[subset.apply(lambda row: consulta in normalize(" ".join(map(str, row.values))), axis=1)]
@@ -1682,36 +1757,7 @@ if seleccion_nav=="📊 Mis intereses":
             "Organizar actividades culturales y recibir a visitantes."
         ]
     }
-    def _normalizar_interes(texto):
-        return "".join(letra for letra in unicodedata.normalize("NFKD", str(texto).casefold()) if not unicodedata.combining(letra))
 
-    def _afinidades_carrera(nombre):
-        n = _normalizar_interes(nombre)
-        etiquetas = set()
-        def agregar(area, *palabras):
-            if any(p in n for p in palabras):
-                etiquetas.add(area)
-        agregar("Tecnología e informática", "informatica", "software", "programacion", "programador", "sistemas", "datos", "inteligencia artificial", "videojuegos", "soporte de infraestructura", "infraestructura de tecnologia de la informacion")
-        agregar("Ingeniería, industria y construcción", "ingenieria quimica", "ingenieria industrial", "ingenieria de minas", "perforacion", "arquitectura", "construccion", "higiene y seguridad", "mantenimiento industrial", "energias renovables")
-        agregar("Ciencias exactas", "matematica", "fisica", "quimica", "geolog")
-        agregar("Ciencias naturales y ambiente", "biolog", "ambient", "forestal", "agronom", "geolog", "ecolog", "desarrollo rural")
-        agregar("Producción agropecuaria y alimentaria", "agro", "alimento", "bromatolog", "granja", "forestal", "agricola", "cocina regional", "desarrollo rural")
-        agregar("Salud y bienestar", "medicina", "enfermer", "salud", "seguridad e higiene")
-        agregar("Educación y enseñanza", "profesorado", "educacion", "docencia", "formacion docente")
-        agregar("Lenguas, literatura y escritura", "ingles", "frances", "portugues", "letras", "literatura", "editorial", "lengua")
-        agregar("Filosofía, historia y antropología", "filosofia", "historia", "antropolog")
-        agregar("Derecho, política y sociedad", "abogac", "derecho", "politic", "trabajo social", "ninez", "adolescencia", "familia")
-        agregar("Comunicación y medios", "comunicacion", "periodismo", "medios", "editorial")
-        agregar("Arte, diseño y creatividad", "arte", "artistic", "diseno", "musica", "teatro", "danza", "videojuegos")
-        agregar("Economía, administración y gestión", "administracion", "contador", "economia", "gestion empresarial")
-        agregar("Turismo, gastronomía y patrimonio", "turismo", "gastronom", "cocina", "cultura alimentaria")
-        if "ingenieria informatica" in n:
-            etiquetas.add("Ingeniería, industria y construcción")
-        if "economia politica" in n:
-            etiquetas.add("Derecho, política y sociedad")
-        if "tecnologia de los alimentos" in n or "tecnologias de los alimentos" in n:
-            etiquetas.add("Ingeniería, industria y construcción")
-        return etiquetas
 
     questions = [(area, i, pregunta) for i in range(3) for area, preguntas in areas.items() for pregunta in [preguntas[i]]]
     opciones = ["No estoy seguro/a", "1 — Nada", "2 — Poco", "3 — Bastante", "4 — Mucho"]
