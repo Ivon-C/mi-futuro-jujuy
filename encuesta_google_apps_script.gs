@@ -10,6 +10,10 @@ function doPost(e) {
     const encontrada = String(data.carrera_encontrada || "").trim();
     const faltante = String(data.carrera_faltante || "").trim();
     const mejora = String(data.mejoras || "").trim();
+    const envioId = String(data.submission_id || "").trim();
+    if (envioId && !/^[a-f0-9]{32}$/i.test(envioId)) {
+      throw new Error("El identificador del envío no es válido.");
+    }
 
     if (!Number.isInteger(edad) || edad < 10 || edad > 99) {
       throw new Error("La edad debe ser un número entero entre 10 y 99.");
@@ -27,14 +31,22 @@ function doPost(e) {
 
     const bloqueo = LockService.getScriptLock();
     bloqueo.waitLock(10000);
+    let duplicado = false;
     try {
-      const fecha = Utilities.formatDate(new Date(), "America/Argentina/Jujuy", "yyyy-MM-dd HH:mm:ss");
-      hoja.appendRow([fecha, edad, encontrada, encontrada === "No" ? faltante : "", mejora]);
+      const propiedades = PropertiesService.getScriptProperties();
+      const claveEnvio = envioId ? "encuesta_envio_" + envioId : "";
+      if (claveEnvio && propiedades.getProperty(claveEnvio)) {
+        duplicado = true;
+      } else {
+        const fecha = Utilities.formatDate(new Date(), "America/Argentina/Jujuy", "yyyy-MM-dd HH:mm:ss");
+        hoja.appendRow([fecha, edad, encontrada, encontrada === "No" ? faltante : "", mejora]);
+        if (claveEnvio) propiedades.setProperty(claveEnvio, fecha);
+      }
     } finally {
       bloqueo.releaseLock();
     }
 
-    return ContentService.createTextOutput(JSON.stringify({ok: true}))
+    return ContentService.createTextOutput(JSON.stringify({ok: true, duplicate: duplicado}))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({ok: false, error: String(error.message || error)}))
