@@ -1264,7 +1264,6 @@ if seleccion_nav=="📍 Mapa":
         except Exception:
             with open(geo_path, encoding="utf-8") as geo_file:
                 boundaries = json.load(geo_file)
-            st.caption("Mapa de respaldo: no fue posible consultar los límites oficiales actualizados.")
         m = folium.Map(
             location=[-23.25, -65.7], zoom_start=8, tiles=None,
             zoom_control=False, scrollWheelZoom=False,
