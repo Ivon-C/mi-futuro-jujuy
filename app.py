@@ -556,6 +556,32 @@ def visible_value(value):
     return text
 
 
+def unidad_academica_visible(row):
+    """Oculta la unidad académica cuando ya está nombrada en la institución."""
+    unidad = visible_value(row.get("Unidad académica", "")) or visible_value(row.get("Facultad", ""))
+    institucion = visible_value(row.get("Institución", ""))
+    if unidad and institucion and normalize(unidad).strip() in normalize(institucion).strip():
+        return ""
+    return unidad
+
+
+def sede_cursado_visible(row):
+    """Limpia avisos de convocatoria de la sede sin ocultar la modalidad especial."""
+    sede = visible_value(row.get("Sede de cursado confirmada", "")) or visible_value(row.get("Lugar donde se dicta", ""))
+    if not sede:
+        return ""
+
+    def limpiar_detalle(match):
+        detalle = re.sub(r"(?i)\\bconsultar nuevas inscripciones\\b", "", match.group(1))
+        detalle = re.sub(r"\\s*[;,]\\s*", " ", detalle).strip()
+        return f" ({detalle})" if detalle else ""
+
+    sede = re.sub(r"\\s*\\(([^)]*)\\)", limpiar_detalle, sede)
+    sede = re.sub(r"(?i)\\s*[,;]?\\s*consultar nuevas inscripciones\\b.*$", "", sede)
+    sede = re.sub(r"(?i)^\\s*sede\\s*[:\\-]?\\s*", "", sede).strip(" ;,")
+    return sede
+
+
 def contacto_institucional_visible(row):
     """Datos de contacto confirmados: sin campos vacíos, URLs inválidas ni marcadores."""
     from urllib.parse import urlsplit
@@ -1500,12 +1526,10 @@ if seleccion_nav=="📍 Mapa":
                         institucion = visible_value(item.get("Institución", ""))
                         if institucion:
                             st.caption(f"🏫 {institucion}")
-                        facultad = visible_value(item.get("Unidad académica", "")) or visible_value(item.get("Facultad", ""))
+                        facultad = unidad_academica_visible(item)
                         if facultad:
                             st.caption(f"🏛️ {facultad}")
-                        sede = visible_value(item.get("Sede de cursado confirmada", ""))
-                        if not sede:
-                            sede = visible_value(item.get("Lugar donde se dicta", ""))
+                        sede = sede_cursado_visible(item)
                         if sede:
                             st.caption(f"📍 Sede: {sede}")
                         mostrar_informacion_y_contacto(item)
@@ -1544,9 +1568,7 @@ if seleccion_nav=="🎓 Buscá carreras":
             localidad = visible_value(carrera_row.get(town, ""))
             formacion = visible_value(carrera_row.get("Tipo de formación", ""))
             area = visible_value(carrera_row.get("Área principal preliminar", ""))
-            sede = visible_value(carrera_row.get("Sede de cursado confirmada", ""))
-            if not sede:
-                sede = visible_value(carrera_row.get("Lugar donde se dicta", ""))
+            sede = sede_cursado_visible(carrera_row)
             aviso = alcance_sede_visible(carrera_row)
             with st.container(border=True):
                 if nombre:
@@ -1565,7 +1587,7 @@ if seleccion_nav=="🎓 Buscá carreras":
                     st.caption(f"📘 {complemento}")
                 if institucion:
                     st.write(f"🏫 **Institución:** {institucion}")
-                unidad = visible_value(carrera_row.get("Unidad académica", "")) or visible_value(carrera_row.get("Facultad", ""))
+                unidad = unidad_academica_visible(carrera_row)
                 if unidad:
                     st.write(f"🏛️ **Unidad académica:** {unidad}")
                 if localidad:
