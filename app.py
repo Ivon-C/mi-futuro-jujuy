@@ -1684,5 +1684,77 @@ if seleccion_nav=="📊 Mis intereses":
                 st.write(f"Marcaste «No estoy seguro/a» en {total} actividades.")
             st.caption("Este resultado es orientativo, no mide capacidades ni determina qué estudiar.")
 
+
+            st.markdown("---")
+            st.subheader("📝 Tu experiencia con Mi Futuro Jujuy")
+            st.write("Tu opinión nos ayuda a mejorar la información y las herramientas de la app.")
+            if st.session_state.get("encuesta_mi_futuro_enviada"):
+                st.success("¡Gracias! Tu respuesta quedó registrada.")
+            else:
+                edad = st.number_input(
+                    "¿Qué edad tenés?",
+                    min_value=10,
+                    max_value=99,
+                    value=None,
+                    step=1,
+                    help="Escribí solo tu edad en números. No se admiten letras.",
+                    key="encuesta_edad",
+                )
+                carrera_encontrada = st.radio(
+                    "¿Encontraste en la app la carrera que te interesa?",
+                    ["Sí", "No"],
+                    index=None,
+                    key="encuesta_carrera_encontrada",
+                )
+                carrera_faltante = ""
+                if carrera_encontrada == "No":
+                    carrera_faltante = st.text_input(
+                        "¿Qué carrera buscabas y no encontraste?",
+                        key="encuesta_carrera_faltante",
+                    ).strip()
+                mejoras = st.text_area(
+                    "¿Qué mejorarías o agregarías en la app?",
+                    key="encuesta_mejoras",
+                    help="Esta respuesta es opcional.",
+                )
+                if st.button("Enviar encuesta", type="primary", key="enviar_encuesta_mi_futuro"):
+                    if edad is None:
+                        st.warning("Ingresá tu edad usando solo números.")
+                    elif carrera_encontrada is None:
+                        st.warning("Indicá si encontraste la carrera que te interesa.")
+                    elif carrera_encontrada == "No" and not carrera_faltante:
+                        st.warning("Contanos qué carrera buscabas y no encontraste.")
+                    else:
+                        try:
+                            survey_webhook_url = str(st.secrets.get("survey_webhook_url", "")).strip()
+                        except Exception:
+                            survey_webhook_url = ""
+                        if not survey_webhook_url:
+                            st.error("La encuesta está lista, pero falta conectar el envío a la hoja de respuestas.")
+                        else:
+                            try:
+                                from urllib.request import Request
+                                payload = json.dumps({
+                                    "edad": int(edad),
+                                    "carrera_encontrada": carrera_encontrada,
+                                    "carrera_faltante": carrera_faltante,
+                                    "mejoras": mejoras.strip(),
+                                }).encode("utf-8")
+                                solicitud = Request(
+                                    survey_webhook_url,
+                                    data=payload,
+                                    headers={"Content-Type": "application/json"},
+                                    method="POST",
+                                )
+                                with urlopen(solicitud, timeout=20) as respuesta_webhook:
+                                    resultado_webhook = json.loads(respuesta_webhook.read().decode("utf-8"))
+                                if resultado_webhook.get("ok"):
+                                    st.session_state.encuesta_mi_futuro_enviada = True
+                                    st.rerun()
+                                else:
+                                    st.error("No se pudo guardar la respuesta. Revisá los datos e intentá nuevamente.")
+                            except Exception:
+                                st.error("No se pudo enviar la respuesta a la hoja. Intentá nuevamente más tarde.")
+
 st.divider()
 st.caption("Mi Futuro Jujuy · Prototipo educativo · Información en revisión")
