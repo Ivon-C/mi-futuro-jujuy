@@ -1623,7 +1623,64 @@ if seleccion_nav=="📊 Mis intereses":
         clave = f"intereses_opcion_v4_{paso}"
         if clave not in st.session_state and paso in st.session_state.intereses_respuestas:
             st.session_state[clave] = st.session_state.intereses_respuestas[paso]
-        seleccion = st.radio("Seleccioná una respuesta", opciones, index=None, key=clave, label_visibility="collapsed")
+        st.markdown("""
+        <style>
+        .st-key-intereses_respuesta_visual [data-testid="stRadio"] div[role="radiogroup"] {
+            display: grid !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: .6rem;
+            align-items: stretch;
+        }
+        .st-key-intereses_respuesta_visual label[data-baseweb="radio"] {
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 4.5rem;
+            padding: .75rem .55rem;
+            border: 1px solid #d8e4e1;
+            border-radius: 14px;
+            background: #ffffff;
+            transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+        .st-key-intereses_respuesta_visual label[data-baseweb="radio"]:hover {
+            border-color: #11877d;
+            background: #f0faf8;
+        }
+        .st-key-intereses_respuesta_visual label[data-baseweb="radio"]:has(input:checked) {
+            color: #ffffff !important;
+            background: linear-gradient(145deg, #126d65, #159286) !important;
+            border-color: #126d65 !important;
+            box-shadow: 0 5px 14px rgba(18, 109, 101, .22);
+        }
+        .st-key-intereses_respuesta_visual label[data-baseweb="radio"]:has(input:checked) * {
+            color: #ffffff !important;
+        }
+        .st-key-intereses_respuesta_visual label[data-baseweb="radio"] p {
+            margin: 0;
+            text-align: center;
+            font-weight: 650;
+            line-height: 1.25;
+        }
+        @media (max-width: 700px) {
+            .st-key-intereses_respuesta_visual [data-testid="stRadio"] div[role="radiogroup"] {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .st-key-intereses_respuesta_visual label[data-baseweb="radio"]:last-child {
+                grid-column: span 2;
+            }
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        with st.container(key="intereses_respuesta_visual"):
+            seleccion = st.radio(
+                "Seleccioná una respuesta",
+                opciones,
+                index=None,
+                key=clave,
+                label_visibility="collapsed",
+                horizontal=True,
+            )
         if seleccion is not None:
             st.session_state.intereses_respuestas[paso] = seleccion
         col_anterior, col_siguiente = st.columns(2)
