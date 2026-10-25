@@ -5,6 +5,7 @@ from streamlit_folium import st_folium
 from pathlib import Path
 import json
 import io
+import uuid
 from urllib.request import urlopen
 
 st.set_page_config(page_title="Mi Futuro Jujuy", page_icon="🎓", layout="wide")
@@ -1589,9 +1590,9 @@ if seleccion_nav=="📊 Mis intereses":
         return etiquetas
 
     questions = [(area, i, pregunta) for i in range(3) for area, preguntas in areas.items() for pregunta in [preguntas[i]]]
-    opciones = ["Me interesa mucho", "Me interesa bastante", "Me interesa poco", "No me interesa", "No estoy seguro/a"]
-    puntajes = {"Me interesa mucho": 4, "Me interesa bastante": 3, "Me interesa poco": 2, "No me interesa": 1}
-    version = "intereses_v2_14areas"
+    opciones = ["No me interesa", "Me interesa poco", "Me interesa algo", "Me interesa bastante", "Me interesa mucho", "No estoy seguro/a"]
+    puntajes = {"No me interesa": 1, "Me interesa poco": 2, "Me interesa algo": 3, "Me interesa bastante": 4, "Me interesa mucho": 5, "No estoy seguro/a": 0}
+    version = "intereses_v3_5niveles_14areas"
     if st.session_state.get("intereses_version") != version:
         st.session_state.intereses_version = version
         st.session_state.intereses_paso = 0
@@ -1604,7 +1605,7 @@ if seleccion_nav=="📊 Mis intereses":
             st.session_state.intereses_finalizado = False
             st.session_state.pop("intereses_area_carreras", None)
             for k in list(st.session_state.keys()):
-                if k.startswith("intereses_opcion_v2_"):
+                if k.startswith(("intereses_opcion_v2_", "intereses_opcion_v3_")):
                     del st.session_state[k]
             st.rerun()
     else:
@@ -1615,7 +1616,7 @@ if seleccion_nav=="📊 Mis intereses":
         st.progress((paso + 1) / len(questions))
         st.markdown(f"### {actividad}")
         st.caption("¿Cuánto te interesaría realizar esta actividad?")
-        clave = f"intereses_opcion_v2_{paso}"
+        clave = f"intereses_opcion_v3_{paso}"
         if clave not in st.session_state and paso in st.session_state.intereses_respuestas:
             st.session_state[clave] = st.session_state.intereses_respuestas[paso]
         seleccion = st.radio("Seleccioná una respuesta", opciones, index=None, key=clave, label_visibility="collapsed")
@@ -1643,12 +1644,10 @@ if seleccion_nav=="📊 Mis intereses":
             st.warning("Respondé todas las preguntas para ver tus resultados.")
         else:
             resultados = {}
-            incertidumbre = {}
             for area, preguntas in areas.items():
                 elegidas = [respuestas[(area, i)] for i in range(len(preguntas))]
-                validas = [puntajes[x] for x in elegidas if x in puntajes]
+                validas = [puntajes[x] for x in elegidas if x in puntajes and puntajes[x] > 0]
                 resultados[area] = sum(validas) / len(validas) if validas else None
-                incertidumbre[area] = elegidas.count("No estoy seguro/a")
             orden = sorted((a for a in areas if resultados[a] is not None), key=lambda a: resultados[a], reverse=True)
             st.subheader("🌟 Tu perfil exploratorio")
             if orden:
@@ -1682,7 +1681,7 @@ if seleccion_nav=="📊 Mis intereses":
                             <div style="font-size:34px;line-height:1.1;">{iconos_areas.get(area, "✨")}</div>
                             <div style="color:{acentos[pos-1]};font-size:16px;font-weight:800;margin-top:10px;">{titulo}</div>
                             <div style="color:#20242c;font-size:20px;font-weight:750;margin:6px 0 10px;">{area}</div>
-                            <div style="color:#414852;font-size:14px;">Interés promedio: {resultados[area]:.1f} de 4</div>
+                            <div style="color:#414852;font-size:14px;">Interés promedio: {resultados[area]:.1f} de 5</div>
                             </div>""",
                             unsafe_allow_html=True,
                         )
@@ -1708,10 +1707,7 @@ if seleccion_nav=="📊 Mis intereses":
                         st.rerun()
                 st.caption("También podés abrir el botón de cada área para consultar sus carreras.")
             else:
-                st.info("Marcaste «No estoy seguro/a» en todas las actividades. Podés explorar las áreas antes de decidir.")
-            total = sum(incertidumbre.values())
-            if total:
-                st.write(f"Marcaste «No estoy seguro/a» en {total} actividades.")
+                st.info("Aún no hay respuestas suficientes para destacar áreas. Podés explorar las carreras disponibles y volver a intentarlo cuando tengas más información.")
             st.caption("Este resultado es orientativo, no mide capacidades ni determina qué estudiar.")
 
             st.markdown("""
@@ -1787,44 +1783,79 @@ if seleccion_nav=="📊 Mis intereses":
                         help="Esta respuesta es opcional.",
                         height=110,
                     )
-                    if st.button("Enviar mi opinión", type="primary", key="enviar_encuesta_mi_futuro", use_container_width=True):
-                        if edad is None:
-                            st.warning("Ingresá tu edad usando solo números.")
-                        elif carrera_encontrada is None:
-                            st.warning("Indicá si encontraste la carrera que te interesa.")
-                        elif carrera_encontrada == "No" and not carrera_faltante:
-                            st.warning("Contanos qué carrera buscabas y no encontraste.")
+                    def preparar_envio_encuesta():
+                        edad_actual = st.session_state.get("encuesta_edad")
+                        encontrada_actual = st.session_state.get("encuesta_carrera_encontrada")
+                        faltante_actual = str(st.session_state.get("encuesta_carrera_faltante", "")).strip()
+                        if edad_actual is None:
+                            st.session_state.encuesta_error = "Ingresá tu edad usando solo números."
+                            return
+                        if encontrada_actual is None:
+                            st.session_state.encuesta_error = "Indicá si encontraste la carrera que te interesa."
+                            return
+                        if encontrada_actual == "No" and not faltante_actual:
+                            st.session_state.encuesta_error = "Contanos qué carrera buscabas y no encontraste."
+                            return
+                        st.session_state.encuesta_error = ""
+                        st.session_state.encuesta_payload = {
+                            "edad": int(edad_actual),
+                            "carrera_encontrada": encontrada_actual,
+                            "carrera_faltante": faltante_actual if encontrada_actual == "No" else "",
+                            "mejoras": str(st.session_state.get("encuesta_mejoras", "")).strip(),
+                        }
+                        st.session_state.setdefault("encuesta_submission_id", uuid.uuid4().hex)
+                        st.session_state.encuesta_enviando = True
+
+                    if st.session_state.get("encuesta_error"):
+                        st.warning(st.session_state.encuesta_error)
+                    st.button(
+                        "Enviando…" if st.session_state.get("encuesta_enviando") else "Enviar mi opinión",
+                        type="primary",
+                        key="enviar_encuesta_mi_futuro",
+                        use_container_width=True,
+                        disabled=st.session_state.get("encuesta_enviando", False),
+                        on_click=preparar_envio_encuesta,
+                    )
+
+                    if st.session_state.get("encuesta_enviando"):
+                        st.info("Enviando tu respuesta… Esperá a que aparezca la confirmación.")
+                        try:
+                            survey_webhook_url = str(st.secrets.get("survey_webhook_url", "")).strip()
+                        except Exception:
+                            survey_webhook_url = ""
+                        if not survey_webhook_url:
+                            st.session_state.encuesta_enviando = False
+                            st.session_state.encuesta_payload = None
+                            st.error("La encuesta está lista, pero falta conectar el envío a la hoja de respuestas.")
                         else:
                             try:
-                                survey_webhook_url = str(st.secrets.get("survey_webhook_url", "")).strip()
-                            except Exception:
-                                survey_webhook_url = ""
-                            if not survey_webhook_url:
-                                st.error("La encuesta está lista, pero falta conectar el envío a la hoja de respuestas.")
-                            else:
-                                try:
-                                    from urllib.request import Request
-                                    payload = json.dumps({
-                                        "edad": int(edad),
-                                        "carrera_encontrada": carrera_encontrada,
-                                        "carrera_faltante": carrera_faltante,
-                                        "mejoras": mejoras.strip(),
-                                    }).encode("utf-8")
-                                    solicitud = Request(
-                                        survey_webhook_url,
-                                        data=payload,
-                                        headers={"Content-Type": "application/json"},
-                                        method="POST",
-                                    )
-                                    with urlopen(solicitud, timeout=20) as respuesta_webhook:
+                                from urllib.request import Request
+                                payload = dict(st.session_state.encuesta_payload)
+                                payload["submission_id"] = st.session_state.encuesta_submission_id
+                                cuerpo = json.dumps(payload).encode("utf-8")
+                                solicitud = Request(
+                                    survey_webhook_url,
+                                    data=cuerpo,
+                                    headers={"Content-Type": "application/json"},
+                                    method="POST",
+                                )
+                                with st.spinner("Guardando tu respuesta…"):
+                                    with urlopen(solicitud, timeout=30) as respuesta_webhook:
                                         resultado_webhook = json.loads(respuesta_webhook.read().decode("utf-8"))
-                                    if resultado_webhook.get("ok"):
-                                        st.session_state.encuesta_mi_futuro_enviada = True
-                                        st.rerun()
-                                    else:
-                                        st.error("No se pudo guardar la respuesta. Revisá los datos e intentá nuevamente.")
-                                except Exception:
-                                    st.error("No se pudo enviar la respuesta a la hoja. Intentá nuevamente más tarde.")
+                                if resultado_webhook.get("ok"):
+                                    st.session_state.encuesta_mi_futuro_enviada = True
+                                    st.session_state.encuesta_enviando = False
+                                    st.session_state.encuesta_payload = None
+                                    st.session_state.encuesta_error = ""
+                                    st.rerun()
+                                else:
+                                    st.session_state.encuesta_enviando = False
+                                    st.session_state.encuesta_payload = None
+                                    st.error("No se pudo guardar la respuesta. Revisá los datos e intentá nuevamente.")
+                            except Exception:
+                                st.session_state.encuesta_enviando = False
+                                st.session_state.encuesta_payload = None
+                                st.error("No se pudo confirmar el envío. Podés volver a intentar; el mismo envío no se duplicará.")
 
 st.divider()
 st.caption("Mi Futuro Jujuy · Prototipo educativo · Información en revisión")
