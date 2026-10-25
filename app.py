@@ -9,6 +9,104 @@ import uuid
 from urllib.request import urlopen
 
 st.set_page_config(page_title="Mi Futuro Jujuy", page_icon="🎓", layout="wide")
+
+def guardar_respuesta_interes(paso, opcion):
+    st.session_state[f"intereses_opcion_v5_{paso}"] = opcion
+    st.session_state.intereses_respuestas[paso] = opcion
+
+
+@st.fragment
+def mostrar_pregunta_interes(questions, opciones):
+    st.info("Leé cada actividad e indicá cuánto te interesaría realizarla. No hay respuestas correctas o incorrectas. «No estoy seguro/a» no se incluye en el puntaje.")
+    paso = st.session_state.intereses_paso
+    area_actual, indice_actual, actividad = questions[paso]
+    st.markdown(f"**Pregunta {paso + 1} de {len(questions)}**")
+    st.progress((paso + 1) / len(questions))
+    st.markdown(f"### {actividad}")
+    st.caption("¿Cuánto te interesaría realizar esta actividad?")
+    clave = f"intereses_opcion_v5_{paso}"
+    if clave not in st.session_state and paso in st.session_state.intereses_respuestas:
+        st.session_state[clave] = st.session_state.intereses_respuestas[paso]
+    st.markdown("""
+    <style>
+    .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
+        box-sizing: border-box;
+        min-height: 5.6rem;
+        border: 1px solid #d7e3e0 !important;
+        border-radius: 16px !important;
+        background: #ffffff !important;
+        color: #183b38 !important;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.35;
+        white-space: normal;
+        padding: .7rem .45rem;
+        box-shadow: 0 2px 7px rgba(28, 56, 53, .06);
+        transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+    .st-key-intereses_respuesta_visual [data-testid="stButton"] > button:hover {
+        border-color: #13877d !important;
+        background: #f0faf8 !important;
+        color: #124f49 !important;
+        transform: translateY(-1px);
+    }
+    .st-key-intereses_respuesta_visual [data-testid="stButton"] > button[kind="primary"] {
+        border-color: #126d65 !important;
+        background: linear-gradient(145deg, #126d65, #159286) !important;
+        color: #ffffff !important;
+        box-shadow: 0 7px 18px rgba(18, 109, 101, .24);
+    }
+    .st-key-intereses_respuesta_visual [data-testid="stButton"] > button[kind="primary"]:hover {
+        border-color: #0d5e57 !important;
+        background: linear-gradient(145deg, #0d5e57, #117b72) !important;
+        color: #ffffff !important;
+    }
+    .st-key-intereses_respuesta_visual [data-testid="stButton"] p { margin: 0; }
+    @media (max-width: 700px) {
+        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
+            min-height: 5rem;
+            font-size: .88rem;
+            padding: .5rem .25rem;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    with st.container(key="intereses_respuesta_visual"):
+        columnas_respuestas = st.columns(len(opciones), gap="small")
+        for indice_opcion, opcion in enumerate(opciones):
+            with columnas_respuestas[indice_opcion]:
+                seleccionada = st.session_state.get(clave) == opcion
+                if " — " in opcion:
+                    numero, etiqueta = opcion.split(" — ", 1)
+                    texto_boton = f"**{numero}**  \\n{etiqueta}"
+                else:
+                    texto_boton = opcion
+                st.button(
+                    texto_boton,
+                    key=f"intereses_respuesta_card_{paso}_{indice_opcion}",
+                    type="primary" if seleccionada else "secondary",
+                    use_container_width=True,
+                    on_click=guardar_respuesta_interes,
+                    args=(paso, opcion),
+                )
+    seleccion = st.session_state.get(clave)
+    col_anterior, col_siguiente = st.columns(2)
+    with col_anterior:
+        if st.button("← Anterior", disabled=paso == 0, use_container_width=True, key="intereses_anterior"):
+            st.session_state.intereses_paso -= 1
+            st.rerun(scope="fragment")
+    with col_siguiente:
+        texto = "Ver mis resultados ✓" if paso == len(questions) - 1 else "Siguiente →"
+        if st.button(texto, type="primary", use_container_width=True, key="intereses_siguiente"):
+            if seleccion is None:
+                st.warning("Seleccioná una opción para continuar.")
+            elif paso < len(questions) - 1:
+                st.session_state.intereses_paso += 1
+                st.rerun(scope="fragment")
+            else:
+                st.session_state.intereses_finalizado = True
+                st.rerun()
+
 st.markdown("""<style>div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"] {background:#7138c8;color:white;border:0;font-weight:700;} div.st-key-intereses_nuevo button[kind=\"primaryFormSubmit\"]:hover {background:#5925a7;color:white;}</style>""", unsafe_allow_html=True)
 FILE = Path(__file__).with_name("carreras.xlsx")
 if not FILE.exists():
@@ -1606,107 +1704,14 @@ if seleccion_nav=="📊 Mis intereses":
             st.session_state.encuesta_payload = None
             st.session_state.encuesta_error = ""
             st.session_state.pop("encuesta_submission_id", None)
-            for k in ("encuesta_edad", "encuesta_carrera_encontrada", "encuesta_carrera_faltante", "encuesta_mejoras"):
+            for k in ("encuesta_edad", "encuesta_ajuste_areas", "encuesta_carrera_encontrada", "encuesta_carrera_faltante", "encuesta_mejoras"):
                 st.session_state.pop(k, None)
             for k in list(st.session_state.keys()):
                 if k.startswith(("intereses_opcion_v2_", "intereses_opcion_v3_", "intereses_opcion_v4_", "intereses_opcion_v5_")):
                     del st.session_state[k]
             st.rerun()
     else:
-        st.info("Leé cada actividad e indicá cuánto te interesaría realizarla. No hay respuestas correctas o incorrectas. «No estoy seguro/a» no se incluye en el puntaje.")
-        paso = st.session_state.intereses_paso
-        area_actual, indice_actual, actividad = questions[paso]
-        st.markdown(f"**Pregunta {paso + 1} de {len(questions)}**")
-        st.progress((paso + 1) / len(questions))
-        st.markdown(f"### {actividad}")
-        st.caption("¿Cuánto te interesaría realizar esta actividad?")
-        clave = f"intereses_opcion_v5_{paso}"
-        if clave not in st.session_state and paso in st.session_state.intereses_respuestas:
-            st.session_state[clave] = st.session_state.intereses_respuestas[paso]
-        st.markdown("""
-        <style>
-        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
-            box-sizing: border-box;
-            min-height: 5.6rem;
-            border: 1px solid #d7e3e0 !important;
-            border-radius: 16px !important;
-            background: #ffffff !important;
-            color: #183b38 !important;
-            font-size: 1rem;
-            font-weight: 700;
-            line-height: 1.35;
-            white-space: normal;
-            padding: .7rem .45rem;
-            box-shadow: 0 2px 7px rgba(28, 56, 53, .06);
-            transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
-        }
-        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button:hover {
-            border-color: #13877d !important;
-            background: #f0faf8 !important;
-            color: #124f49 !important;
-            transform: translateY(-1px);
-        }
-        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button[kind="primary"] {
-            border-color: #126d65 !important;
-            background: linear-gradient(145deg, #126d65, #159286) !important;
-            color: #ffffff !important;
-            box-shadow: 0 7px 18px rgba(18, 109, 101, .24);
-        }
-        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button[kind="primary"]:hover {
-            border-color: #0d5e57 !important;
-            background: linear-gradient(145deg, #0d5e57, #117b72) !important;
-            color: #ffffff !important;
-        }
-        .st-key-intereses_respuesta_visual [data-testid="stButton"] p {
-            margin: 0;
-        }
-        @media (max-width: 700px) {
-            .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
-                min-height: 5rem;
-                font-size: .88rem;
-                padding: .5rem .25rem;
-            }
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        with st.container(key="intereses_respuesta_visual"):
-            columnas_respuestas = st.columns(len(opciones), gap="small")
-            for indice_opcion, opcion in enumerate(opciones):
-                with columnas_respuestas[indice_opcion]:
-                    seleccionada = st.session_state.get(clave) == opcion
-                    if " — " in opcion:
-                        numero, etiqueta = opcion.split(" — ", 1)
-                        texto_boton = f"**{numero}**  \n{etiqueta}"
-                    else:
-                        texto_boton = opcion
-                    if st.button(
-                        texto_boton,
-                        key=f"intereses_respuesta_card_{paso}_{indice_opcion}",
-                        type="primary" if seleccionada else "secondary",
-                        use_container_width=True,
-                    ):
-                        st.session_state[clave] = opcion
-                        st.session_state.intereses_respuestas[paso] = opcion
-                        st.rerun()
-            seleccion = st.session_state.get(clave)
-        if seleccion is not None:
-            st.session_state.intereses_respuestas[paso] = seleccion
-        col_anterior, col_siguiente = st.columns(2)
-        with col_anterior:
-            if st.button("← Anterior", disabled=paso == 0, use_container_width=True, key="intereses_anterior"):
-                st.session_state.intereses_paso -= 1
-                st.rerun()
-        with col_siguiente:
-            texto = "Ver mis resultados ✓" if paso == len(questions) - 1 else "Siguiente →"
-            if st.button(texto, type="primary", use_container_width=True, key="intereses_siguiente"):
-                if seleccion is None:
-                    st.warning("Seleccioná una opción para continuar.")
-                elif paso < len(questions) - 1:
-                    st.session_state.intereses_paso += 1
-                    st.rerun()
-                else:
-                    st.session_state.intereses_finalizado = True
-                    st.rerun()
+        mostrar_pregunta_interes(questions, opciones)
     if st.session_state.intereses_finalizado:
         respuestas = {(area, i): st.session_state.intereses_respuestas.get(paso) for paso, (area, i, _) in enumerate(questions)}
         if any(x is None for x in respuestas.values()):
