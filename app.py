@@ -1234,13 +1234,9 @@ div[data-testid="stSegmentedControl"] {justify-content:flex-end}
 .mf-art-title {color:#0d385e;font-weight:800;font-size:1.1rem;margin-top:5px}
 .mf-art-caption {color:#35617a;font-size:.92rem;margin-top:7px}
 .mf-card {min-height:255px;border-radius:22px;padding:22px 22px 12px;margin-bottom:4px}
-div[class*="st-key-home_card_"] button {min-height:280px!important;height:100%!important;white-space:normal!important;text-align:center!important;padding:22px!important;border:0!important;border-radius:22px!important;font-size:1rem!important;line-height:1.45!important;font-weight:500!important;box-shadow:0 5px 14px #18334c12!important;transition:transform .16s ease,box-shadow .16s ease!important}
-div[class*="st-key-home_card_"] button p {text-align:center!important}
-div[class*="st-key-home_card_"] button:hover {transform:translateY(-3px);box-shadow:0 12px 26px #18334c20!important}
-div[class*="st-key-home_card_01"] button {background:#e8f9f5!important;color:#124b4b!important}
-div[class*="st-key-home_card_02"] button {background:#e6f2ff!important;color:#173e70!important}
-div[class*="st-key-home_card_03"] button {background:#fff6df!important;color:#674b0a!important}
-div[class*="st-key-home_card_04"] button {background:#fff0f4!important;color:#70233d!important}
+.mf-home-card-link {display:block;color:inherit;text-decoration:none!important}
+.mf-home-card-link:hover .mf-card {transform:translateY(-3px);box-shadow:0 12px 26px #18334c20}
+.mf-card {transition:transform .16s ease,box-shadow .16s ease}
 .mf-card h3 {font-size:1.55rem;margin:12px 0;color:#0b2d54;font-weight:800}
 .mf-card p {color:#274766;font-size:1rem;line-height:1.45}
 .mf-icon {font-size:2.45rem;display:flex;align-items:center;justify-content:center;width:86px;height:86px;margin:5px auto 16px;border-radius:50%;background:#ffffff80;box-shadow:0 2px 10px #102f4a10}
@@ -1328,8 +1324,22 @@ if seleccion_nav=="🏠 Inicio":
     cols=st.columns(4,gap="medium")
     for col,(numero,icono,titulo,descripcion,boton,destino,fondo,color) in zip(cols,tarjetas):
         with col:
-            etiqueta = f"**{numero}**" + chr(10) * 2 + icono + chr(10) * 2 + f"**{titulo}**" + chr(10) * 2 + descripcion + chr(10) * 2 + f"**{boton} →**"
-            if st.button(etiqueta,key="home_card_"+numero,use_container_width=True):
+            ruta_tarjeta = {
+                "🧭 Explorá": "explora",
+                "📊 Mis intereses": "intereses",
+                "🎓 Buscá carreras": "carreras",
+                "📍 Mapa": "mapa",
+            }[destino]
+            st.markdown(
+                f'<a class="mf-home-card-link" href="?seccion={ruta_tarjeta}" target="_self" aria-label="Abrir {titulo}">'
+                f'<div class="mf-card" style="background:{fondo};cursor:pointer">'
+                f'<span style="display:inline-flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:50%;background:{color};color:white;font-size:1.22rem;font-weight:850;letter-spacing:.5px;box-shadow:0 3px 8px #18334c1a">{numero}</span>'
+                f'<div class="mf-icon">{icono}</div><h3>{titulo}</h3><p>{descripcion}</p>'
+                f'<div style="text-align:center;font-weight:750;color:{color};padding-top:4px">{boton} →</div>'
+                f'</div></a>',
+                unsafe_allow_html=True,
+            )
+            if st.button(boton+" →",key="ir_"+numero,use_container_width=True,type="primary"):
                 st.session_state.mf_nav_pendiente = destino
                 st.rerun()
     st.markdown('<div class="mf-footer">🎓 Oferta educativa de Jujuy &nbsp; · &nbsp; 🛡️ Información orientativa &nbsp; · &nbsp; 💙 Tu futuro importa</div>',unsafe_allow_html=True)
