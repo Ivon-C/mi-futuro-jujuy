@@ -1485,79 +1485,76 @@ if seleccion_nav=="📊 Mis intereses":
 
     areas = {
         "Tecnología e informática": [
-            "¿Te gustaría crear aplicaciones, páginas web o programas que resuelvan problemas?",
-            "¿Te interesaría comprender cómo funcionan las computadoras y los sistemas informáticos?",
-            "¿Te gustaría utilizar datos o inteligencia artificial para encontrar soluciones?"
+            "Crear aplicaciones, páginas web o programas para resolver problemas.",
+            "Configurar equipos o redes y resolver problemas técnicos.",
+            "Usar datos o inteligencia artificial para encontrar soluciones."
         ],
         "Ingeniería, industria y construcción": [
-            "¿Te gustaría diseñar edificios, estructuras, máquinas o procesos de producción?",
-            "¿Te interesaría descubrir cómo se fabrican productos y mejorar su elaboración?",
-            "¿Te gustaría resolver problemas relacionados con materiales, energía o construcciones?"
+            "Diseñar edificios, estructuras o máquinas.",
+            "Mejorar procesos de fabricación para aprovechar mejor los materiales y la energía.",
+            "Planificar el mantenimiento de máquinas y equipos industriales."
         ],
         "Ciencias exactas": [
-            "¿Disfrutarías resolver desafíos que requieren cálculos y razonamiento lógico?",
-            "¿Te gustaría investigar cómo se comportan la materia y la energía?",
-            "¿Te interesaría utilizar fórmulas y modelos para explicar situaciones reales?"
+            "Resolver problemas matemáticos mediante cálculos y razonamiento lógico.",
+            "Investigar fenómenos físicos, como el movimiento, la materia o la energía.",
+            "Analizar datos y usar modelos matemáticos para explicar situaciones."
         ],
         "Ciencias naturales y ambiente": [
-            "¿Te gustaría investigar cómo funcionan los seres vivos y los ecosistemas?",
-            "¿Te interesaría estudiar problemas ambientales y buscar soluciones?",
-            "¿Te gustaría realizar observaciones o experimentos para comprender fenómenos naturales?"
+            "Investigar cómo se relacionan los seres vivos con los ecosistemas donde habitan.",
+            "Analizar problemas ambientales y proponer formas de cuidar los recursos naturales.",
+            "Tomar muestras de agua, suelo o aire para estudiar sus características."
         ],
         "Producción agropecuaria y alimentaria": [
-            "¿Te interesaría conocer cómo se cultivan y producen los alimentos?",
-            "¿Te gustaría mejorar actividades agrícolas, ganaderas o forestales?",
-            "¿Te interesaría investigar la calidad y elaboración de productos alimenticios?"
+            "Participar en el cultivo de plantas y la producción de alimentos.",
+            "Mejorar la crianza de animales o el aprovechamiento del suelo y los bosques.",
+            "Controlar la calidad y participar en la elaboración de productos alimenticios."
         ],
         "Salud y bienestar": [
-            "¿Te gustaría participar en actividades para prevenir enfermedades?",
-            "¿Te interesaría comprender cómo funciona el cuerpo humano?",
-            "¿Te gustaría acompañar a otras personas en el cuidado de su salud?"
+            "Identificar riesgos en los espacios de trabajo y proponer medidas para prevenir accidentes y cuidar la salud.",
+            "Comprender cómo funciona el cuerpo humano.",
+            "Acompañar a otras personas en el cuidado de su salud."
         ],
         "Educación y enseñanza": [
-            "¿Te gustaría explicar un tema para ayudar a otra persona a comprenderlo?",
-            "¿Disfrutarías preparar actividades o materiales para enseñar?",
-            "¿Te interesaría buscar distintas maneras de acompañar el aprendizaje?"
+            "Explicar un tema para ayudar a otra persona a comprenderlo.",
+            "Diseñar actividades o materiales para enseñar.",
+            "Buscar distintas maneras de acompañar el aprendizaje de cada estudiante."
         ],
         "Lenguas, literatura y escritura": [
-            "¿Te gustaría aprender inglés, francés, portugués u otros idiomas y conocer sus culturas?",
-            "¿Disfrutás leer, interpretar o escribir cuentos, poemas y otros textos?",
-            "¿Te interesaría investigar cómo funcionan las lenguas y cómo cambian?"
+            "Aprender otros idiomas y conocer las culturas de quienes los hablan.",
+            "Leer, interpretar o escribir cuentos, poemas y otros textos.",
+            "Investigar cómo se forman las lenguas y cómo cambian con el tiempo."
         ],
         "Filosofía, historia y antropología": [
-            "¿Te gustaría debatir preguntas sobre la libertad, la justicia o el sentido de la vida?",
-            "¿Te interesaría investigar acontecimientos del pasado y sus consecuencias actuales?",
-            "¿Te gustaría conocer cómo viven y piensan diferentes comunidades?"
+            "Debatir preguntas sobre la libertad, la justicia o el sentido de la vida.",
+            "Investigar hechos del pasado y comprender sus consecuencias en la actualidad.",
+            "Conocer cómo viven, piensan y se organizan distintas comunidades."
         ],
         "Derecho, política y sociedad": [
-            "¿Te interesaría conocer las leyes y analizar cómo se aplican?",
-            "¿Te gustaría comprender cómo funciona el Estado y cómo se toman decisiones políticas?",
-            "¿Te interesaría participar en proyectos para mejorar la vida de una comunidad?"
+            "Analizar leyes y comprender cómo se aplican en distintas situaciones.",
+            "Estudiar cómo funciona el Estado y cómo se toman las decisiones políticas.",
+            "Participar en proyectos que busquen resolver problemas de una comunidad."
         ],
         "Comunicación y medios": [
-            "¿Te gustaría investigar noticias y comunicar información a otras personas?",
-            "¿Te interesaría producir contenidos para radio, redes sociales o medios digitales?",
-            "¿Te gustaría planificar campañas para transmitir ideas o generar conciencia?"
+            "Investigar hechos de actualidad y comunicar información al público.",
+            "Producir contenidos para radio, redes sociales o medios digitales.",
+            "Diseñar campañas para difundir ideas o promover temas de interés social."
         ],
         "Arte, diseño y creatividad": [
-            "¿Te gustaría crear dibujos, diseños, imágenes u otras producciones artísticas?",
-            "¿Disfrutarías participar en proyectos de música, teatro, danza o artes visuales?",
-            "¿Te interesaría utilizar herramientas digitales para expresar ideas creativamente?"
+            "Crear dibujos, imágenes o diseños para comunicar una idea.",
+            "Participar en proyectos de música, teatro, danza o artes visuales.",
+            "Usar herramientas digitales para crear propuestas visuales, sonoras o interactivas."
         ],
         "Economía, administración y gestión": [
-            "¿Te gustaría organizar los recursos y el presupuesto de un emprendimiento?",
-            "¿Te interesaría analizar cómo se producen y distribuyen los recursos económicos?",
-            "¿Disfrutarías planificar y coordinar las actividades de una organización?"
+            "Organizar el presupuesto y los recursos de un emprendimiento.",
+            "Analizar cómo se producen y distribuyen los bienes y servicios.",
+            "Planificar y coordinar las actividades de una organización."
         ],
         "Turismo, gastronomía y patrimonio": [
-            "¿Te gustaría diseñar recorridos para dar a conocer lugares de Jujuy?",
-            "¿Te interesaría conocer y preparar comidas tradicionales de distintas regiones?",
-            "¿Disfrutarías organizar experiencias culturales o actividades para visitantes?"
+            "Diseñar recorridos para dar a conocer lugares de Jujuy.",
+            "Preparar comidas tradicionales y conocer la historia de sus ingredientes.",
+            "Organizar actividades culturales y recibir a visitantes."
         ]
     }
-
-    # Las áreas de afinidad no sustituyen el campo académico ni los requisitos de ingreso.
-    import unicodedata
     def _normalizar_interes(texto):
         return "".join(letra for letra in unicodedata.normalize("NFKD", str(texto).casefold()) if not unicodedata.combining(letra))
 
@@ -1590,9 +1587,9 @@ if seleccion_nav=="📊 Mis intereses":
         return etiquetas
 
     questions = [(area, i, pregunta) for i in range(3) for area, preguntas in areas.items() for pregunta in [preguntas[i]]]
-    opciones = ["No me interesa", "Me interesa poco", "Me interesa algo", "Me interesa bastante", "Me interesa mucho", "No estoy seguro/a"]
-    puntajes = {"No me interesa": 1, "Me interesa poco": 2, "Me interesa algo": 3, "Me interesa bastante": 4, "Me interesa mucho": 5, "No estoy seguro/a": 0}
-    version = "intereses_v3_5niveles_14areas"
+    opciones = ["1 — Nada", "2 — Poco", "3 — Bastante", "4 — Mucho", "No estoy seguro/a"]
+    puntajes = {"1 — Nada": 1, "2 — Poco": 2, "3 — Bastante": 3, "4 — Mucho": 4, "No estoy seguro/a": 0}
+    version = "intereses_v4_4niveles_14areas"
     if st.session_state.get("intereses_version") != version:
         st.session_state.intereses_version = version
         st.session_state.intereses_paso = 0
@@ -1612,18 +1609,18 @@ if seleccion_nav=="📊 Mis intereses":
             for k in ("encuesta_edad", "encuesta_carrera_encontrada", "encuesta_carrera_faltante", "encuesta_mejoras"):
                 st.session_state.pop(k, None)
             for k in list(st.session_state.keys()):
-                if k.startswith(("intereses_opcion_v2_", "intereses_opcion_v3_")):
+                if k.startswith(("intereses_opcion_v2_", "intereses_opcion_v3_", "intereses_opcion_v4_")):
                     del st.session_state[k]
             st.rerun()
     else:
-        st.info("Leé cada actividad e indicá cuánto te interesaría realizarla. No hay respuestas correctas o incorrectas. «No estoy seguro/a» no suma ni resta puntos.")
+        st.info("Leé cada actividad e indicá cuánto te interesaría realizarla. No hay respuestas correctas o incorrectas. «No estoy seguro/a» no se incluye en el puntaje.")
         paso = st.session_state.intereses_paso
         area_actual, indice_actual, actividad = questions[paso]
         st.markdown(f"**Pregunta {paso + 1} de {len(questions)}**")
         st.progress((paso + 1) / len(questions))
         st.markdown(f"### {actividad}")
         st.caption("¿Cuánto te interesaría realizar esta actividad?")
-        clave = f"intereses_opcion_v3_{paso}"
+        clave = f"intereses_opcion_v4_{paso}"
         if clave not in st.session_state and paso in st.session_state.intereses_respuestas:
             st.session_state[clave] = st.session_state.intereses_respuestas[paso]
         seleccion = st.radio("Seleccioná una respuesta", opciones, index=None, key=clave, label_visibility="collapsed")
@@ -1688,7 +1685,7 @@ if seleccion_nav=="📊 Mis intereses":
                             <div style="font-size:34px;line-height:1.1;">{iconos_areas.get(area, "✨")}</div>
                             <div style="color:{acentos[pos-1]};font-size:16px;font-weight:800;margin-top:10px;">{titulo}</div>
                             <div style="color:#20242c;font-size:20px;font-weight:750;margin:6px 0 10px;">{area}</div>
-                            <div style="color:#414852;font-size:14px;">Interés promedio: {resultados[area]:.1f} de 5</div>
+                            <div style="color:#414852;font-size:14px;">Interés promedio: {resultados[area]:.1f} de 4</div>
                             </div>""",
                             unsafe_allow_html=True,
                         )
