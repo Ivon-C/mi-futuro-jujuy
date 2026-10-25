@@ -1609,6 +1609,8 @@ if seleccion_nav=="📊 Mis intereses":
             st.session_state.encuesta_payload = None
             st.session_state.encuesta_error = ""
             st.session_state.pop("encuesta_submission_id", None)
+            for k in ("encuesta_edad", "encuesta_carrera_encontrada", "encuesta_carrera_faltante", "encuesta_mejoras"):
+                st.session_state.pop(k, None)
             for k in list(st.session_state.keys()):
                 if k.startswith(("intereses_opcion_v2_", "intereses_opcion_v3_")):
                     del st.session_state[k]
