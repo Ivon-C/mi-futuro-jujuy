@@ -1234,9 +1234,9 @@ div[data-testid="stSegmentedControl"] {justify-content:flex-end}
 .mf-art-title {color:#0d385e;font-weight:800;font-size:1.1rem;margin-top:5px}
 .mf-art-caption {color:#35617a;font-size:.92rem;margin-top:7px}
 .mf-card {min-height:255px;border-radius:22px;padding:22px 22px 12px;margin-bottom:4px}
-.mf-card-button button {min-height:280px!important;height:100%!important;white-space:pre-wrap!important;text-align:center!important;padding:22px!important;border:0!important;border-radius:22px!important;font-size:1rem!important;line-height:1.45!important;font-weight:500!important;box-shadow:0 5px 14px #18334c12!important;transition:transform .16s ease,box-shadow .16s ease!important}
-.mf-card-button button p {text-align:center!important}
-.mf-card-button button:hover {transform:translateY(-3px);box-shadow:0 12px 26px #18334c20!important}
+div[class*="st-key-home_card_"] button {min-height:280px!important;height:100%!important;white-space:normal!important;text-align:center!important;padding:22px!important;border:0!important;border-radius:22px!important;font-size:1rem!important;line-height:1.45!important;font-weight:500!important;box-shadow:0 5px 14px #18334c12!important;transition:transform .16s ease,box-shadow .16s ease!important}
+div[class*="st-key-home_card_"] button p {text-align:center!important}
+div[class*="st-key-home_card_"] button:hover {transform:translateY(-3px);box-shadow:0 12px 26px #18334c20!important}
 div[class*="st-key-home_card_01"] button {background:#e8f9f5!important;color:#124b4b!important}
 div[class*="st-key-home_card_02"] button {background:#e6f2ff!important;color:#173e70!important}
 div[class*="st-key-home_card_03"] button {background:#fff6df!important;color:#674b0a!important}
@@ -1328,8 +1328,7 @@ if seleccion_nav=="🏠 Inicio":
     cols=st.columns(4,gap="medium")
     for col,(numero,icono,titulo,descripcion,boton,destino,fondo,color) in zip(cols,tarjetas):
         with col:
-            st.markdown(f'<div class="mf-card-button st-key-home_card_{numero}"></div>',unsafe_allow_html=True)
-            etiqueta = f"**{numero}**  \\n\\n{icono}  \\n\\n**{titulo}**  \\n\\n{descripcion}  \\n\\n**{boton} →**"
+            etiqueta = f"**{numero}**\n\n{icono}\n\n**{titulo}**\n\n{descripcion}\n\n**{boton} →**
             if st.button(etiqueta,key="home_card_"+numero,use_container_width=True):
                 st.session_state.mf_nav_pendiente = destino
                 st.rerun()
