@@ -572,13 +572,13 @@ def sede_cursado_visible(row):
         return ""
 
     def limpiar_detalle(match):
-        detalle = re.sub(r"(?i)\\bconsultar nuevas inscripciones\\b", "", match.group(1))
-        detalle = re.sub(r"\\s*[;,]\\s*", " ", detalle).strip()
+        detalle = re.sub(r"(?i)\bconsultar nuevas inscripciones\b", "", match.group(1))
+        detalle = re.sub(r"\s*[;,]\s*", " ", detalle).strip()
         return f" ({detalle})" if detalle else ""
 
-    sede = re.sub(r"\\s*\\(([^)]*)\\)", limpiar_detalle, sede)
-    sede = re.sub(r"(?i)\\s*[,;]?\\s*consultar nuevas inscripciones\\b.*$", "", sede)
-    sede = re.sub(r"(?i)^\\s*sede\\s*[:\\-]?\\s*", "", sede).strip(" ;,")
+    sede = re.sub(r"\s*\(([^)]*)\)", limpiar_detalle, sede)
+    sede = re.sub(r"(?i)\s*[,;]?\s*consultar nuevas inscripciones\b.*$", "", sede)
+    sede = re.sub(r"(?i)^\s*sede\s*[:\-]?\s*", "", sede).strip(" ;,")
     return sede
 
 
