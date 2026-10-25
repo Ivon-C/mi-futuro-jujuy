@@ -1567,12 +1567,12 @@ if seleccion_nav=="📊 Mis intereses":
         def agregar(area, *palabras):
             if any(p in n for p in palabras):
                 etiquetas.add(area)
-        agregar("Tecnología e informática", "informatica", "software", "programacion", "programador", "sistemas", "datos", "inteligencia artificial", "videojuegos")
-        agregar("Ingeniería, industria y construcción", "ingenieria quimica", "ingenieria industrial", "ingenieria de minas", "perforacion", "arquitectura", "construccion", "higiene y seguridad")
+        agregar("Tecnología e informática", "informatica", "software", "programacion", "programador", "sistemas", "datos", "inteligencia artificial", "videojuegos", "soporte de infraestructura", "infraestructura de tecnologia de la informacion")
+        agregar("Ingeniería, industria y construcción", "ingenieria quimica", "ingenieria industrial", "ingenieria de minas", "perforacion", "arquitectura", "construccion", "higiene y seguridad", "mantenimiento industrial", "energias renovables")
         agregar("Ciencias exactas", "matematica", "fisica", "quimica", "geolog")
-        agregar("Ciencias naturales y ambiente", "biolog", "ambient", "forestal", "agronom", "geolog", "ecolog")
-        agregar("Producción agropecuaria y alimentaria", "agro", "alimento", "bromatolog", "granja", "forestal", "agricola", "cocina regional")
-        agregar("Salud y bienestar", "medicina", "enfermer", "salud")
+        agregar("Ciencias naturales y ambiente", "biolog", "ambient", "forestal", "agronom", "geolog", "ecolog", "desarrollo rural")
+        agregar("Producción agropecuaria y alimentaria", "agro", "alimento", "bromatolog", "granja", "forestal", "agricola", "cocina regional", "desarrollo rural")
+        agregar("Salud y bienestar", "medicina", "enfermer", "salud", "seguridad e higiene")
         agregar("Educación y enseñanza", "profesorado", "educacion", "docencia", "formacion docente")
         agregar("Lenguas, literatura y escritura", "ingles", "frances", "portugues", "letras", "literatura", "editorial", "lengua")
         agregar("Filosofía, historia y antropología", "filosofia", "historia", "antropolog")
