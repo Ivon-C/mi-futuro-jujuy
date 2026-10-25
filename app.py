@@ -1678,7 +1678,7 @@ if seleccion_nav=="📊 Mis intereses":
                     titulo = f"{pos}° área destacada · mismo interés que la anterior" if empate else f"{pos}° lugar"
                     with columna_podio:
                         st.markdown(
-                            f"""<div style="height:190px;background:linear-gradient(145deg,{fondos[pos-1]},#ffffff);border:1px solid {acentos[pos-1]}33;border-top:5px solid {acentos[pos-1]};border-radius:18px;padding:20px 18px;margin:8px 0;box-shadow:0 8px 22px rgba(29,45,75,.08);">
+                            f"""<div style="min-height:205px;background:linear-gradient(145deg,{fondos[pos-1]},#ffffff);border:1px solid {acentos[pos-1]}33;border-top:5px solid {acentos[pos-1]};border-radius:18px;padding:20px 18px;margin:8px 0;box-shadow:0 8px 22px rgba(29,45,75,.08);">
                             <div style="font-size:34px;line-height:1.1;">{iconos_areas.get(area, "✨")}</div>
                             <div style="color:{acentos[pos-1]};font-size:16px;font-weight:800;margin-top:10px;">{titulo}</div>
                             <div style="color:#20242c;font-size:20px;font-weight:750;margin:6px 0 10px;">{area}</div>
