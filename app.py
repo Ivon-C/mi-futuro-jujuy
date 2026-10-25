@@ -1625,61 +1625,46 @@ if seleccion_nav=="📊 Mis intereses":
             st.session_state[clave] = st.session_state.intereses_respuestas[paso]
         st.markdown("""
         <style>
-        .st-key-intereses_respuesta_visual [data-testid="column"] {
-            border: 1px solid #d9e4e1;
-            border-radius: 16px;
-            padding: .55rem .45rem .35rem;
-            background: #ffffff;
-            transition: background .16s ease, border-color .16s ease, box-shadow .16s ease;
+        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
+            box-sizing: border-box;
+            min-height: 5.6rem;
+            border: 1px solid #d7e3e0 !important;
+            border-radius: 16px !important;
+            background: #ffffff !important;
+            color: #183b38 !important;
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.35;
+            white-space: normal;
+            padding: .7rem .45rem;
+            box-shadow: 0 2px 7px rgba(28, 56, 53, .06);
+            transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
         }
-        .st-key-intereses_respuesta_visual [data-testid="column"]:hover {
-            border-color: #13877d;
-            background: #f3faf8;
+        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button:hover {
+            border-color: #13877d !important;
+            background: #f0faf8 !important;
+            color: #124f49 !important;
+            transform: translateY(-1px);
         }
-        .st-key-intereses_respuesta_visual [data-testid="column"]:has(button[kind="primary"]) {
-            background: linear-gradient(145deg, #126d65, #159286);
-            border-color: #126d65;
+        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button[kind="primary"] {
+            border-color: #126d65 !important;
+            background: linear-gradient(145deg, #126d65, #159286) !important;
+            color: #ffffff !important;
             box-shadow: 0 7px 18px rgba(18, 109, 101, .24);
         }
-        .st-key-intereses_respuesta_visual .numero-respuesta {
-            min-height: 2.4rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #183b38;
-            font-size: 1.35rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-        .st-key-intereses_respuesta_visual [data-testid="column"]:has(button[kind="primary"]) .numero-respuesta {
-            color: #ffffff;
-        }
-        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
-            min-height: 3rem;
-            border-radius: 11px;
-            font-weight: 700;
-            white-space: normal;
-            line-height: 1.2;
-            border-color: transparent;
-            background: transparent;
-            color: #183b38;
-            padding: .4rem .25rem;
-        }
-        .st-key-intereses_respuesta_visual [data-testid="column"]:has(button[kind="primary"]) [data-testid="stButton"] > button {
+        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button[kind="primary"]:hover {
+            border-color: #0d5e57 !important;
+            background: linear-gradient(145deg, #0d5e57, #117b72) !important;
             color: #ffffff !important;
-            background: transparent !important;
-            border-color: transparent !important;
         }
-        .st-key-intereses_respuesta_visual [data-testid="column"]:has(button[kind="primary"]) [data-testid="stButton"] > button:hover {
-            color: #ffffff !important;
-            background: rgba(255, 255, 255, .12) !important;
+        .st-key-intereses_respuesta_visual [data-testid="stButton"] p {
+            margin: 0;
         }
         @media (max-width: 700px) {
-            .st-key-intereses_respuesta_visual [data-testid="column"] {
-                padding: .35rem .25rem .25rem;
-            }
             .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
-                font-size: .85rem;
+                min-height: 5rem;
+                font-size: .88rem;
+                padding: .5rem .25rem;
             }
         }
         </style>
@@ -1691,14 +1676,11 @@ if seleccion_nav=="📊 Mis intereses":
                     seleccionada = st.session_state.get(clave) == opcion
                     if " — " in opcion:
                         numero, etiqueta = opcion.split(" — ", 1)
+                        texto_boton = f"**{numero}**  \n{etiqueta}"
                     else:
-                        numero, etiqueta = "", opcion
-                    st.markdown(
-                        f'<div class="numero-respuesta">{numero or "&nbsp;"}</div>',
-                        unsafe_allow_html=True,
-                    )
+                        texto_boton = opcion
                     if st.button(
-                        etiqueta,
+                        texto_boton,
                         key=f"intereses_respuesta_card_{paso}_{indice_opcion}",
                         type="primary" if seleccionada else "secondary",
                         use_container_width=True,
