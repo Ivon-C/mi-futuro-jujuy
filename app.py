@@ -11,6 +11,17 @@ import uuid
 from urllib.request import urlopen
 
 st.set_page_config(page_title="Mi Futuro Jujuy", page_icon="🎓", layout="wide")
+rutas_tarjetas = {
+    "explora": "🧭 Explorá",
+    "intereses": "📊 Mis intereses",
+    "carreras": "🎓 Buscá carreras",
+    "mapa": "📍 Mapa",
+}
+seccion_desde_enlace = st.query_params.get("seccion", "")
+if seccion_desde_enlace in rutas_tarjetas:
+    st.session_state["mf_nav_pendiente"] = rutas_tarjetas[seccion_desde_enlace]
+    del st.query_params["seccion"]
+
 
 def guardar_respuesta_interes(paso, opcion):
     st.session_state[f"intereses_opcion_v5_{paso}"] = opcion
@@ -1223,6 +1234,9 @@ div[data-testid="stSegmentedControl"] {justify-content:flex-end}
 .mf-art-title {color:#0d385e;font-weight:800;font-size:1.1rem;margin-top:5px}
 .mf-art-caption {color:#35617a;font-size:.92rem;margin-top:7px}
 .mf-card {min-height:255px;border-radius:22px;padding:22px 22px 12px;margin-bottom:4px}
+.mf-home-card-link {display:block;color:inherit;text-decoration:none!important}
+.mf-home-card-link:hover .mf-card {transform:translateY(-3px);box-shadow:0 12px 26px #18334c20}
+.mf-card {transition:transform .16s ease,box-shadow .16s ease}
 .mf-card h3 {font-size:1.55rem;margin:12px 0;color:#0b2d54;font-weight:800}
 .mf-card p {color:#274766;font-size:1rem;line-height:1.45}
 .mf-icon {font-size:2.45rem;display:flex;align-items:center;justify-content:center;width:86px;height:86px;margin:5px auto 16px;border-radius:50%;background:#ffffff80;box-shadow:0 2px 10px #102f4a10}
@@ -1310,7 +1324,21 @@ if seleccion_nav=="🏠 Inicio":
     cols=st.columns(4,gap="medium")
     for col,(numero,icono,titulo,descripcion,boton,destino,fondo,color) in zip(cols,tarjetas):
         with col:
-            st.markdown(f'<div class="mf-card" style="background:{fondo}"><span style="display:inline-flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:50%;background:{color};color:white;font-size:1.22rem;font-weight:850;letter-spacing:.5px;box-shadow:0 3px 8px #18334c1a">{numero}</span><div class="mf-icon">{icono}</div><h3>{titulo}</h3><p>{descripcion}</p></div>',unsafe_allow_html=True)
+            ruta_tarjeta = {
+                "🧭 Explorá": "explora",
+                "📊 Mis intereses": "intereses",
+                "🎓 Buscá carreras": "carreras",
+                "📍 Mapa": "mapa",
+            }[destino]
+            st.markdown(
+                f'<a class="mf-home-card-link" href="?seccion={ruta_tarjeta}" aria-label="Abrir {titulo}">'
+                f'<div class="mf-card" style="background:{fondo};cursor:pointer">'
+                f'<span style="display:inline-flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:50%;background:{color};color:white;font-size:1.22rem;font-weight:850;letter-spacing:.5px;box-shadow:0 3px 8px #18334c1a">{numero}</span>'
+                f'<div class="mf-icon">{icono}</div><h3>{titulo}</h3><p>{descripcion}</p>'
+                f'<div style="text-align:center;font-weight:750;color:{color};padding-top:4px">{boton} →</div>'
+                f'</div></a>',
+                unsafe_allow_html=True,
+            )
             if st.button(boton+" →",key="ir_"+numero,use_container_width=True,type="primary"):
                 st.session_state.mf_nav_pendiente = destino
                 st.rerun()
