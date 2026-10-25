@@ -133,7 +133,6 @@ def preparar_catalogo():
     SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqkZDRlfoNYwLpzqnMi9AeVI-Y2stohIpvKVL2hr_Gy4Gp3Ay_gaOEvTNDDuDgVL1sypWyRw5EUX8M/pub?gid=2132573097&single=true&output=csv"
     SHEET_BACKUP = Path(__file__).with_name("carreras_actualizadas.csv")
     
-    @st.cache_data(ttl=300, show_spinner=False)
     def load_google_sheet():
         campos_basicos = {"Institución", "Localidad", "Carrera", "Tipo de formación"}
         campos_actualizados = {
