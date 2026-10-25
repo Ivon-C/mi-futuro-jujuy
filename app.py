@@ -1587,7 +1587,7 @@ if seleccion_nav=="📊 Mis intereses":
         return etiquetas
 
     questions = [(area, i, pregunta) for i in range(3) for area, preguntas in areas.items() for pregunta in [preguntas[i]]]
-    opciones = ["1 — Nada", "2 — Poco", "3 — Bastante", "4 — Mucho", "No estoy seguro/a"]
+    opciones = ["No estoy seguro/a", "1 — Nada", "2 — Poco", "3 — Bastante", "4 — Mucho"]
     puntajes = {"1 — Nada": 1, "2 — Poco": 2, "3 — Bastante": 3, "4 — Mucho": 4, "No estoy seguro/a": 0}
     version = "intereses_v5_4niveles_tarjetas"
     if st.session_state.get("intereses_version") != version:
