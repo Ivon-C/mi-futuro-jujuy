@@ -5,6 +5,8 @@ from streamlit_folium import st_folium
 from pathlib import Path
 import json
 import io
+import re
+import unicodedata
 import uuid
 from urllib.request import urlopen
 
@@ -115,410 +117,416 @@ if not FILE.exists():
 @st.cache_data
 def load_data():
     return pd.read_excel(FILE, sheet_name="Carreras").fillna("")
-df = load_data()
-# El IES 6 se actualizó con la oferta oficial anunciada para ingreso 2027.
-# No recuperar registros históricos de ese instituto desde el Excel de respaldo.
-import re as _re
-def _es_ies6(nombre):
-    t = str(nombre).casefold()
-    return bool(_re.search(r"(?:\bies\b|instituto de educaci[oó]n superior)\s*(?:n[.°ºo]*\s*)?6\b", t))
-df = df[~df["Institución"].map(_es_ies6)].copy()
-# Google Sheets es la fuente principal. El CSV local es una copia reciente
-# del catálogo público: evita fichas viejas si la versión publicada de Sheets
-# todavía no se actualizó o si falla temporalmente la descarga.
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqkZDRlfoNYwLpzqnMi9AeVI-Y2stohIpvKVL2hr_Gy4Gp3Ay_gaOEvTNDDuDgVL1sypWyRw5EUX8M/pub?gid=2132573097&single=true&output=csv"
-SHEET_BACKUP = Path(__file__).with_name("carreras_actualizadas.csv")
-
-@st.cache_data(ttl=300, show_spinner=False)
-def load_google_sheet():
-    campos_basicos = {"Institución", "Localidad", "Carrera", "Tipo de formación"}
-    campos_actualizados = {
-        "Sitio web institucional", "Teléfono institucional", "Correo institucional",
-        "Unidad académica", "Título otorgado", "Ingreso 2027",
-    }
-
-    copia = pd.read_csv(SHEET_BACKUP, dtype=str, keep_default_na=False) if SHEET_BACKUP.exists() else None
-    fuente = "respaldo actualizado de Google Sheets"
-    tabla = copia
-
+@st.cache_data(ttl=300, show_spinner="Actualizando el catálogo de carreras...")
+def preparar_catalogo():
+    df = load_data()
+    # El IES 6 se actualizó con la oferta oficial anunciada para ingreso 2027.
+    # No recuperar registros históricos de ese instituto desde el Excel de respaldo.
+    import re as _re
+    def _es_ies6(nombre):
+        t = str(nombre).casefold()
+        return bool(_re.search(r"(?:\bies\b|instituto de educaci[oó]n superior)\s*(?:n[.°ºo]*\s*)?6\b", t))
+    df = df[~df["Institución"].map(_es_ies6)].copy()
+    # Google Sheets es la fuente principal. El CSV local es una copia reciente
+    # del catálogo público: evita fichas viejas si la versión publicada de Sheets
+    # todavía no se actualizó o si falla temporalmente la descarga.
+    SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqkZDRlfoNYwLpzqnMi9AeVI-Y2stohIpvKVL2hr_Gy4Gp3Ay_gaOEvTNDDuDgVL1sypWyRw5EUX8M/pub?gid=2132573097&single=true&output=csv"
+    SHEET_BACKUP = Path(__file__).with_name("carreras_actualizadas.csv")
+    
+    @st.cache_data(ttl=300, show_spinner=False)
+    def load_google_sheet():
+        campos_basicos = {"Institución", "Localidad", "Carrera", "Tipo de formación"}
+        campos_actualizados = {
+            "Sitio web institucional", "Teléfono institucional", "Correo institucional",
+            "Unidad académica", "Título otorgado", "Ingreso 2027",
+        }
+    
+        copia = pd.read_csv(SHEET_BACKUP, dtype=str, keep_default_na=False) if SHEET_BACKUP.exists() else None
+        fuente = "respaldo actualizado de Google Sheets"
+        tabla = copia
+    
+        try:
+            with urlopen(SHEET_CSV_URL, timeout=12) as respuesta:
+                contenido_csv = respuesta.read().decode("utf-8-sig")
+            publicada = pd.read_csv(io.StringIO(contenido_csv), dtype=str, keep_default_na=False)
+            publicada = publicada[publicada["Carrera"].astype(str).str.strip().ne("")].copy()
+            # Un enlace público de Sheets puede estar publicado con una versión
+            # antigua: nunca usarla si perdió campos nuevos o casi todas las carreras.
+            minimo = max(1, int(len(copia) * 0.90)) if copia is not None else 1
+            if (campos_basicos.issubset(publicada.columns)
+                    and (copia is None or campos_actualizados.issubset(publicada.columns))
+                    and len(publicada) >= minimo):
+                tabla = publicada
+                fuente = "Google Sheets"
+        except Exception:
+            pass  # Seguir con la copia completa y vigente, nunca con el Excel antiguo.
+    
+        if tabla is None or not campos_basicos.issubset(tabla.columns):
+            raise ValueError("La base de carreras actualizada no está disponible.")
+        tabla = tabla[tabla["Carrera"].astype(str).str.strip().ne("")].copy()
+        tabla = tabla.rename(columns={
+            "Carrera": "Carrera / título",
+            "Área preliminar": "Área principal preliminar",
+            "Sede/dirección": "Sede de cursado confirmada",
+        })
+        return tabla, fuente
+    
+    fuente_carreras = "respaldo actualizado de Google Sheets"
     try:
-        with urlopen(SHEET_CSV_URL, timeout=12) as respuesta:
-            contenido_csv = respuesta.read().decode("utf-8-sig")
-        publicada = pd.read_csv(io.StringIO(contenido_csv), dtype=str, keep_default_na=False)
-        publicada = publicada[publicada["Carrera"].astype(str).str.strip().ne("")].copy()
-        # Un enlace público de Sheets puede estar publicado con una versión
-        # antigua: nunca usarla si perdió campos nuevos o casi todas las carreras.
-        minimo = max(1, int(len(copia) * 0.90)) if copia is not None else 1
-        if (campos_basicos.issubset(publicada.columns)
-                and (copia is None or campos_actualizados.issubset(publicada.columns))
-                and len(publicada) >= minimo):
-            tabla = publicada
-            fuente = "Google Sheets"
+        google_df, fuente_carreras = load_google_sheet()
+        # Reemplazar en el respaldo las instituciones presentes en Sheets.
+        # Así las bajas y correcciones en Drive no vuelven a aparecer desde Excel.
+        # Equiparar "IES 10" con "INSTITUTO DE EDUCACIÓN SUPERIOR N° 10" del respaldo.
+        def clave_institucion(valor):
+            import re
+            import unicodedata
+            txt = "".join(letra for letra in unicodedata.normalize("NFKD", str(valor).casefold())
+                          if not unicodedata.combining(letra))
+            numero = re.search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", txt)
+            return "ies " + numero.group(1) if numero else txt.strip()
+        institutos_google = set(google_df["Institución"].map(clave_institucion))
+        # Conservar las tecnicaturas y las demás carreras históricas de los IES
+        # estatales incorporados ahora (3, 4 y 5). La ausencia de una tecnicatura
+        # de la planilla NO significa que el instituto haya dejado de dictarla.
+        # Para los IES ya depurados (1, 2, 6, 9, 10 y 11) se mantienen las
+        # decisiones previas para no reintroducir registros descartados.
+        conservar_respaldo_de = {"ies 3", "ies 4", "ies 5"}
+        def clave_textual(valor):
+            import unicodedata
+            import re
+            txt = "".join(ch for ch in unicodedata.normalize("NFKD", str(valor).casefold())
+                          if not unicodedata.combining(ch))
+            return re.sub(r"[^a-z0-9]+", " ", txt).strip()
+    
+        claves_google = {
+            (clave_institucion(fila.get("Institución", "")),
+             clave_textual(fila.get("Localidad", "")),
+             clave_textual(fila.get("Carrera / título", "")))
+            for _, fila in google_df.iterrows()
+        }
+    
+        def conservar_registro_historico(fila):
+            institucion = clave_institucion(fila.get("Institución", ""))
+            if institucion not in institutos_google:
+                return True
+            if institucion not in conservar_respaldo_de:
+                return False
+            clave = (institucion,
+                     clave_textual(fila.get("Localidad", "")),
+                     clave_textual(fila.get("Carrera / título", "")))
+            return clave not in claves_google
+    
+        df = df[df.apply(conservar_registro_historico, axis=1)].copy()
+        df["_registro_actualizado"] = False
+        google_df["_registro_actualizado"] = True
+        df = pd.concat([df, google_df], ignore_index=True)
     except Exception:
-        pass  # Seguir con la copia completa y vigente, nunca con el Excel antiguo.
-
-    if tabla is None or not campos_basicos.issubset(tabla.columns):
-        raise ValueError("La base de carreras actualizada no está disponible.")
-    tabla = tabla[tabla["Carrera"].astype(str).str.strip().ne("")].copy()
-    tabla = tabla.rename(columns={
-        "Carrera": "Carrera / título",
-        "Área preliminar": "Área principal preliminar",
-        "Sede/dirección": "Sede de cursado confirmada",
-    })
-    return tabla, fuente
-
-try:
-    google_df, fuente_carreras = load_google_sheet()
-    # Reemplazar en el respaldo las instituciones presentes en Sheets.
-    # Así las bajas y correcciones en Drive no vuelven a aparecer desde Excel.
-    # Equiparar "IES 10" con "INSTITUTO DE EDUCACIÓN SUPERIOR N° 10" del respaldo.
-    def clave_institucion(valor):
-        import re
-        import unicodedata
-        txt = "".join(letra for letra in unicodedata.normalize("NFKD", str(valor).casefold())
-                      if not unicodedata.combining(letra))
-        numero = re.search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", txt)
-        return "ies " + numero.group(1) if numero else txt.strip()
-    institutos_google = set(google_df["Institución"].map(clave_institucion))
-    # Conservar las tecnicaturas y las demás carreras históricas de los IES
-    # estatales incorporados ahora (3, 4 y 5). La ausencia de una tecnicatura
-    # de la planilla NO significa que el instituto haya dejado de dictarla.
-    # Para los IES ya depurados (1, 2, 6, 9, 10 y 11) se mantienen las
-    # decisiones previas para no reintroducir registros descartados.
-    conservar_respaldo_de = {"ies 3", "ies 4", "ies 5"}
-    def clave_textual(valor):
-        import unicodedata
-        import re
-        txt = "".join(ch for ch in unicodedata.normalize("NFKD", str(valor).casefold())
-                      if not unicodedata.combining(ch))
-        return re.sub(r"[^a-z0-9]+", " ", txt).strip()
-
-    claves_google = {
-        (clave_institucion(fila.get("Institución", "")),
-         clave_textual(fila.get("Localidad", "")),
-         clave_textual(fila.get("Carrera / título", "")))
-        for _, fila in google_df.iterrows()
-    }
-
-    def conservar_registro_historico(fila):
-        institucion = clave_institucion(fila.get("Institución", ""))
-        if institucion not in institutos_google:
-            return True
-        if institucion not in conservar_respaldo_de:
-            return False
-        clave = (institucion,
-                 clave_textual(fila.get("Localidad", "")),
-                 clave_textual(fila.get("Carrera / título", "")))
-        return clave not in claves_google
-
-    df = df[df.apply(conservar_registro_historico, axis=1)].copy()
-    df["_registro_actualizado"] = False
-    google_df["_registro_actualizado"] = True
-    df = pd.concat([df, google_df], ignore_index=True)
-    st.caption(f"📄 Oferta de gestión estatal · fuente: {fuente_carreras}. La plataforma consulta actualizaciones aproximadamente cada 5 minutos.")
-except Exception:
-    st.caption("📄 Mostrando la copia de respaldo. Para activar la sincronización, publicá la pestaña Carreras como CSV en Google Sheets.")
-
-
-# Conservar las tecnicaturas históricas de los IES, aun cuando la ficha
-# mencione un cierre de preinscripción para una cohorte anterior.
-# Cierre de ingreso NO equivale a supresión de la carrera del catálogo.
-cerrada_para_ingreso = df.astype(str).apply(
-    lambda col: col.str.contains(
-        "inscripciones no habilitadas|inscripciones cerradas|no admite ingresantes",
+        pass
+    
+    
+    # Conservar las tecnicaturas históricas de los IES, aun cuando la ficha
+    # mencione un cierre de preinscripción para una cohorte anterior.
+    # Cierre de ingreso NO equivale a supresión de la carrera del catálogo.
+    cerrada_para_ingreso = df.astype(str).apply(
+        lambda col: col.str.contains(
+            "inscripciones no habilitadas|inscripciones cerradas|no admite ingresantes",
+            case=False, regex=True)
+    ).any(axis=1)
+    es_ies = df["Institución"].astype(str).str.contains(
+        r"(?:\bies\b|instituto de educaci[oó]n superior)\s*(?:n[.°ºo]*\s*)?\d+",
         case=False, regex=True)
-).any(axis=1)
-es_ies = df["Institución"].astype(str).str.contains(
-    r"(?:\bies\b|instituto de educaci[oó]n superior)\s*(?:n[.°ºo]*\s*)?\d+",
-    case=False, regex=True)
-es_tecnica = df["Carrera / título"].astype(str).str.contains(
-    "tecnicatura|técnic", case=False, regex=True
-) | df["Tipo de formación"].astype(str).str.contains(
-    "tecnicatura", case=False, regex=True
-)
-df = df[~cerrada_para_ingreso | (es_ies & es_tecnica)].copy()
-# Fuente: Facultad de Ingeniería UNJu. En Libertador se cursa solo primer año.
-engineering_note = ("SOLO PRIMER AÑO en Libertador. Extensión Áulica FI-UNJu, "
-                    "Escuela Técnica Ing. Herminio Arrieta, Mariano Moreno 1368. "
-                    "Consultá en la UNJu dónde continuar los años siguientes.")
-new_rows = []
-for name in ["Ingeniería de Minas", "Ingeniería Química",
-             "Ingeniería Informática", "Ingeniería Industrial"]:
-    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
-              (df["Localidad"].astype(str).str.casefold() == "libertador general san martín")).any()
-    if not exists:
-        new_rows.append({
-            "Institución": "UNJu – Facultad de Ingeniería (Extensión Áulica)",
-            "Localidad": "Libertador General San Martín",
-            "Carrera / título": name,
-            "Tipo de formación": "Ingeniería (solo primer año en esta sede)",
-            "Área principal preliminar": "Tecnología e informática" if "Informática" in name else "Ambiente y producción",
-            "Observación": engineering_note
-        })
-# Nuevas carreras de la Facultad de Ingeniería en San Salvador de Jujuy.
-# La duración de dos años no implica ingreso directo desde la secundaria.
-for name, kind, url in [
-    ("Profesorado Universitario en Informática", "Profesorado universitario",
-     "https://fi.unju.edu.ar/carreras/perfil-alcance/puinf.html"),
-    ("Licenciatura en Informática Educativa", "Licenciatura universitaria",
-     "https://fi.unju.edu.ar/carreras/perfil-alcance/lie.html")
-]:
-    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
-              (df["Localidad"].astype(str).str.casefold() == "san salvador de jujuy")).any()
-    if not exists:
-        new_rows.append({
-            "Institución": "UNJu – Facultad de Ingeniería",
+    es_tecnica = df["Carrera / título"].astype(str).str.contains(
+        "tecnicatura|técnic", case=False, regex=True
+    ) | df["Tipo de formación"].astype(str).str.contains(
+        "tecnicatura", case=False, regex=True
+    )
+    df = df[~cerrada_para_ingreso | (es_ies & es_tecnica)].copy()
+    # Fuente: Facultad de Ingeniería UNJu. En Libertador se cursa solo primer año.
+    engineering_note = ("SOLO PRIMER AÑO en Libertador. Extensión Áulica FI-UNJu, "
+                        "Escuela Técnica Ing. Herminio Arrieta, Mariano Moreno 1368. "
+                        "Consultá en la UNJu dónde continuar los años siguientes.")
+    new_rows = []
+    for name in ["Ingeniería de Minas", "Ingeniería Química",
+                 "Ingeniería Informática", "Ingeniería Industrial"]:
+        exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+                  (df["Localidad"].astype(str).str.casefold() == "libertador general san martín")).any()
+        if not exists:
+            new_rows.append({
+                "Institución": "UNJu – Facultad de Ingeniería (Extensión Áulica)",
+                "Localidad": "Libertador General San Martín",
+                "Carrera / título": name,
+                "Tipo de formación": "Ingeniería (solo primer año en esta sede)",
+                "Área principal preliminar": "Tecnología e informática" if "Informática" in name else "Ambiente y producción",
+                "Observación": engineering_note
+            })
+    # Nuevas carreras de la Facultad de Ingeniería en San Salvador de Jujuy.
+    # La duración de dos años no implica ingreso directo desde la secundaria.
+    for name, kind, url in [
+        ("Profesorado Universitario en Informática", "Profesorado universitario",
+         "https://fi.unju.edu.ar/carreras/perfil-alcance/puinf.html"),
+        ("Licenciatura en Informática Educativa", "Licenciatura universitaria",
+         "https://fi.unju.edu.ar/carreras/perfil-alcance/lie.html")
+    ]:
+        exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+                  (df["Localidad"].astype(str).str.casefold() == "san salvador de jujuy")).any()
+        if not exists:
+            new_rows.append({
+                "Institución": "UNJu – Facultad de Ingeniería",
+                "Localidad": "San Salvador de Jujuy",
+                "Carrera / título": name,
+                "Tipo de formación": kind,
+                "Área principal preliminar": "Tecnología e informática",
+                "Observación": ("Duración publicada: 2 años (4 cuatrimestres). "
+                                "Consultar requisitos de ingreso y título previo con la Facultad. "
+                                "Fuente oficial: " + url)
+            })
+    # Oferta FI-UNJu: sede central y extensiones áulicas, según página oficial.
+    # La oferta publicada no garantiza apertura de inscripciones en cada ciclo.
+    fi_url = "https://fi.unju.edu.ar/secretarias/sacad/oferta-academica.html"
+    fi_offerings = [
+        ("Ingeniería Química", "Ingeniería", "5 años"),
+        ("Ingeniería de Minas", "Ingeniería", "5 años"),
+        ("Ingeniería Industrial", "Ingeniería", "5 años"),
+        ("Ingeniería Informática", "Ingeniería", "5 años"),
+        ("Licenciatura en Sistemas", "Licenciatura", "5 años"),
+        ("Licenciatura en Ciencias Geológicas", "Licenciatura", "5 años"),
+        ("Licenciatura en Tecnología de los Alimentos", "Licenciatura", "4 años"),
+        ("Profesorado Universitario en Informática", "Profesorado universitario", "4 cuatrimestres"),
+        ("Licenciatura en Informática Educativa", "Licenciatura", "4 cuatrimestres"),
+        ("Analista Programador Universitario", "Pregrado universitario", "3 años"),
+        ("Tecnicatura Universitaria en Perforaciones", "Tecnicatura universitaria", "3 años"),
+        ("Tecnicatura Universitaria en Diseño Integral de Videojuegos", "Tecnicatura universitaria", "3 años")
+    ]
+    for name, kind, duration in fi_offerings:
+        exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+                  (df["Localidad"].astype(str).str.casefold() == "san salvador de jujuy") &
+                  (df["Institución"].astype(str).str.casefold().str.contains("unju|universidad nacional de jujuy|facultad de ingenier", regex=True))).any()
+        if not exists:
+            new_rows.append({
+                "Institución": "UNJu – Facultad de Ingeniería",
+                "Localidad": "San Salvador de Jujuy",
+                "Carrera / título": name,
+                "Tipo de formación": kind,
+                "Área principal preliminar": ("Tecnología e informática" if any(k in name.casefold() for k in
+                    ["informát", "sistemas", "programador", "videojuegos"]) else "Ambiente y producción"),
+                "Observación": ("Sede central: Ítalo Palanca 10. Duración publicada: " + duration +
+                                ". Consultar requisitos de ingreso y oferta vigente. Fuente: " + fi_url)
+            })
+    for locality in ["San Pedro", "La Quiaca"]:
+        name = "Analista Programador Universitario"
+        exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+                  (df["Localidad"].astype(str).str.casefold() == locality.casefold())).any()
+        if not exists:
+            new_rows.append({
+                "Institución": "UNJu – Facultad de Ingeniería (Extensión Áulica)",
+                "Localidad": locality,
+                "Carrera / título": name,
+                "Tipo de formación": "Pregrado universitario",
+                "Área principal preliminar": "Tecnología e informática",
+                "Observación": "Extensión áulica FI-UNJu. Duración publicada: 3 años. Confirmar oferta vigente. Fuente: " + fi_url
+            })
+    # Facultad de Ciencias Agrarias (FCA-UNJu): oferta publicada.
+    # Una sede/cohorte publicada NO implica inscripción abierta en el año actual.
+    fca_grad = "https://fca.unju.edu.ar/oferta-academica/grado/"
+    fca_pre = "https://fca.unju.edu.ar/oferta-academica/pregrado/"
+    fca_offerings = [
+        ("Ingeniería Agronómica", "San Salvador de Jujuy", "Ingeniería", "Ambiente y producción", "Carrera de grado de 5 años. Sede central.", fca_grad),
+        ("Ingeniería Agronómica", "San Pedro", "Ingeniería (hasta tercer año en esta sede)", "Ambiente y producción", "Solo hasta 3.º año en San Pedro. Consultar dónde continuar y condiciones de cursado.", fca_grad),
+        ("Licenciatura en Ciencias Biológicas", "San Salvador de Jujuy", "Licenciatura", "Ambiente y producción", "Duración: 5 años.", fca_grad),
+        ("Licenciatura en Bromatología", "San Salvador de Jujuy", "Licenciatura", "Salud y bienestar", "Duración: 4 años y medio; título intermedio de Bromatólogo/a a los 3 años.", fca_grad),
+        ("Licenciatura en Desarrollo Rural", "Abra Pampa", "Licenciatura", "Ambiente y producción", "Cohorte 2024, modalidad especial. Confirmar si admite nuevos ingresantes.", fca_grad),
+        ("Licenciatura en Gestión Ambiental", "Humahuaca", "Licenciatura", "Ambiente y producción", "Duración: 5 años. Confirmar oferta vigente.", fca_grad),
+        ("Tecnicatura Universitaria en Producción de Animales de Granja", "Monterrico", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre),
+        ("Tecnicatura Universitaria en Mecanización Agrícola", "Perico", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre),
+        ("Tecnicatura Universitaria en Transformación de la Producción Agropecuaria", "Tilcara", "Tecnicatura universitaria", "Ambiente y producción", "Cohorte 2026, modalidad especial. Duración: 2 años y medio; consultar ingreso vigente.", fca_pre),
+        ("Tecnicatura Universitaria en Transformación de la Producción Agropecuaria", "Abra Pampa", "Tecnicatura universitaria", "Ambiente y producción", "Cohorte 2026, modalidad especial. Duración: 2 años y medio; consultar ingreso vigente.", fca_pre),
+        ("Tecnicatura Universitaria Forestal", "San Pedro", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre)
+    ]
+    for name, locality, kind, area, note, source in fca_offerings:
+        # Cohortes especiales previas no equivalen a una convocatoria abierta.
+        if "Cohorte 2024" in note or "Cohorte 2026" in note:
+            continue
+        exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
+                  (df["Localidad"].astype(str).str.casefold() == locality.casefold()) &
+                  (df["Institución"].astype(str).str.casefold().str.contains("agrarias|fca", regex=True))).any()
+        if not exists:
+            new_rows.append({
+                "Institución": "UNJu – Facultad de Ciencias Agrarias",
+                "Localidad": locality, "Carrera / título": name,
+                "Tipo de formación": kind, "Área principal preliminar": area,
+                "Observación": note + " Fuente: " + source
+            })
+    # Producción Lechera: no se asigna una localidad sin sede confirmada;
+    # además, la Facultad indica que no tiene inscripciones habilitadas.
+    # FCE-UNJu: anuncio de ingreso 2027 aportado por la usuaria.
+    # No inventar plazos ni estado de inscripción. Sede informada: San Salvador de Jujuy.
+    fce_ingreso_url = "https://www.fce.unju.edu.ar/ingresofceunju"
+    fce_2027 = ["Contador Público", "Licenciatura en Administración",
+                "Licenciatura en Economía Política"]
+    # FHyCS-UNJu: oferta mostrada en la página oficial de ingreso.
+    # Ingreso 2027 habilitado según confirmación de la usuaria; fechas individuales por consultar.
+    fhycs_url = "https://fhycs.unju.edu.ar/ingreso/index.html"
+    fhycs_offerings = [
+        ("Licenciatura en Antropología", ["San Salvador de Jujuy"], "5 años"),
+        ("Licenciatura en Ciencias de la Educación", ["San Salvador de Jujuy", "San Pedro"], "5 años"),
+        ("Tecnicatura en Turismo", ["Humahuaca", "El Carmen"], "Carrera articulada con Licenciatura en Turismo; duración total indicada: 4 años"),
+        ("Licenciatura en Turismo", ["Humahuaca", "El Carmen"], "Duración publicada para la propuesta Turismo: 4 años"),
+        ("Licenciatura en Educación para la Salud", ["San Salvador de Jujuy", "San Pedro"], "5 años y medio"),
+        ("Licenciatura en Historia", ["San Salvador de Jujuy"], "5 años"),
+        ("Profesorado en Filosofía", ["San Salvador de Jujuy"], "4 años; oferta conjunta con Licenciatura en Filosofía"),
+        ("Licenciatura en Filosofía", ["San Salvador de Jujuy"], "4 años; oferta conjunta con Profesorado en Filosofía"),
+        ("Profesorado en Letras", ["San Salvador de Jujuy"], "5 años"),
+        ("Profesorado en Educación para la Salud", ["San Salvador de Jujuy"], "4 años"),
+        ("Licenciatura en Trabajo Social", ["San Salvador de Jujuy", "Tilcara"], "5 años"),
+        ("Profesorado en Historia", ["San Salvador de Jujuy"], "5 años"),
+        ("Tecnicatura Universitaria en Gestión y Producción Editorial", ["San Salvador de Jujuy"], "3 años"),
+        ("Licenciatura en Letras", ["San Salvador de Jujuy"], "5 años"),
+        ("Licenciatura en Comunicación Social", ["San Salvador de Jujuy"], "4 años"),
+        ("Tecnicatura en Comunicación Digital Convergente", ["San Salvador de Jujuy"], "3 años")
+    ]
+    # Evitar duplicar filas que ya figuran en el Excel. Se mantiene el estado no confirmado.
+    for name, localities, duration in fhycs_offerings:
+        for locality in localities:
+            exists = ((df["Carrera / título"].astype(str).str.strip().str.casefold() == name.casefold()) &
+                      (df["Localidad"].astype(str).str.strip().str.casefold() == locality.casefold())).any()
+            pending = any(row["Carrera / título"].casefold() == name.casefold()
+                          and row["Localidad"].casefold() == locality.casefold() for row in new_rows)
+            if not exists and not pending:
+                new_rows.append({
+                    "Institución": "UNJu – Facultad de Humanidades y Ciencias Sociales",
+                    "Localidad": locality, "Carrera / título": name,
+                    "Tipo de formación": "Profesorado" if name.startswith("Profesorado") else ("Tecnicatura" if name.startswith("Tecnicatura") else "Licenciatura"),
+                    "Área principal preliminar": "Educación y humanidades" if any(x in name for x in ("Educación", "Historia", "Filosofía", "Letras", "Antropología", "Editorial")) else "Ciencias sociales y comunicación",
+                    "Observación": duration + ". Ingreso 2027 habilitado según información aportada por la usuaria. Fuente: " + fhycs_url
+                })
+    # Convocatorias de ingreso 2027 comunicadas por el usuario.
+    # Localidad de cursado indicada por la usuaria: San Salvador de Jujuy.
+    admission_2027 = [
+        {
+            "Carrera": "Abogacía",
             "Localidad": "San Salvador de Jujuy",
-            "Carrera / título": name,
-            "Tipo de formación": kind,
-            "Área principal preliminar": "Tecnología e informática",
-            "Observación": ("Duración publicada: 2 años (4 cuatrimestres). "
-                            "Consultar requisitos de ingreso y título previo con la Facultad. "
-                            "Fuente oficial: " + url)
-        })
-# Oferta FI-UNJu: sede central y extensiones áulicas, según página oficial.
-# La oferta publicada no garantiza apertura de inscripciones en cada ciclo.
-fi_url = "https://fi.unju.edu.ar/secretarias/sacad/oferta-academica.html"
-fi_offerings = [
-    ("Ingeniería Química", "Ingeniería", "5 años"),
-    ("Ingeniería de Minas", "Ingeniería", "5 años"),
-    ("Ingeniería Industrial", "Ingeniería", "5 años"),
-    ("Ingeniería Informática", "Ingeniería", "5 años"),
-    ("Licenciatura en Sistemas", "Licenciatura", "5 años"),
-    ("Licenciatura en Ciencias Geológicas", "Licenciatura", "5 años"),
-    ("Licenciatura en Tecnología de los Alimentos", "Licenciatura", "4 años"),
-    ("Profesorado Universitario en Informática", "Profesorado universitario", "4 cuatrimestres"),
-    ("Licenciatura en Informática Educativa", "Licenciatura", "4 cuatrimestres"),
-    ("Analista Programador Universitario", "Pregrado universitario", "3 años"),
-    ("Tecnicatura Universitaria en Perforaciones", "Tecnicatura universitaria", "3 años"),
-    ("Tecnicatura Universitaria en Diseño Integral de Videojuegos", "Tecnicatura universitaria", "3 años")
-]
-for name, kind, duration in fi_offerings:
-    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
-              (df["Localidad"].astype(str).str.casefold() == "san salvador de jujuy") &
-              (df["Institución"].astype(str).str.casefold().str.contains("unju|universidad nacional de jujuy|facultad de ingenier", regex=True))).any()
-    if not exists:
-        new_rows.append({
-            "Institución": "UNJu – Facultad de Ingeniería",
+            "Preinscripción": "1 al 25 de octubre de 2026",
+            "Curso": "Virtual por UNJu Virtual. Módulo I: Lectura y comprensión de textos en la práctica del derecho (2–6 nov); Módulo II: Introducción a las Ciencias Sociales (9–13 nov); Módulo III: Nociones básicas de derecho (16–20 nov).",
+            "Examen": "23 al 26 de febrero de 2027",
+            "Resultados": "Módulos: 27 de noviembre de 2026. Resultados definitivos y orden de mérito: 2 de marzo de 2027."
+        },
+        {
+            "Carrera": "Enfermería Universitaria",
             "Localidad": "San Salvador de Jujuy",
-            "Carrera / título": name,
-            "Tipo de formación": kind,
-            "Área principal preliminar": ("Tecnología e informática" if any(k in name.casefold() for k in
-                ["informát", "sistemas", "programador", "videojuegos"]) else "Ambiente y producción"),
-            "Observación": ("Sede central: Ítalo Palanca 10. Duración publicada: " + duration +
-                            ". Consultar requisitos de ingreso y oferta vigente. Fuente: " + fi_url)
-        })
-for locality in ["San Pedro", "La Quiaca"]:
-    name = "Analista Programador Universitario"
-    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
-              (df["Localidad"].astype(str).str.casefold() == locality.casefold())).any()
-    if not exists:
-        new_rows.append({
-            "Institución": "UNJu – Facultad de Ingeniería (Extensión Áulica)",
-            "Localidad": locality,
-            "Carrera / título": name,
-            "Tipo de formación": "Pregrado universitario",
-            "Área principal preliminar": "Tecnología e informática",
-            "Observación": "Extensión áulica FI-UNJu. Duración publicada: 3 años. Confirmar oferta vigente. Fuente: " + fi_url
-        })
-# Facultad de Ciencias Agrarias (FCA-UNJu): oferta publicada.
-# Una sede/cohorte publicada NO implica inscripción abierta en el año actual.
-fca_grad = "https://fca.unju.edu.ar/oferta-academica/grado/"
-fca_pre = "https://fca.unju.edu.ar/oferta-academica/pregrado/"
-fca_offerings = [
-    ("Ingeniería Agronómica", "San Salvador de Jujuy", "Ingeniería", "Ambiente y producción", "Carrera de grado de 5 años. Sede central.", fca_grad),
-    ("Ingeniería Agronómica", "San Pedro", "Ingeniería (hasta tercer año en esta sede)", "Ambiente y producción", "Solo hasta 3.º año en San Pedro. Consultar dónde continuar y condiciones de cursado.", fca_grad),
-    ("Licenciatura en Ciencias Biológicas", "San Salvador de Jujuy", "Licenciatura", "Ambiente y producción", "Duración: 5 años.", fca_grad),
-    ("Licenciatura en Bromatología", "San Salvador de Jujuy", "Licenciatura", "Salud y bienestar", "Duración: 4 años y medio; título intermedio de Bromatólogo/a a los 3 años.", fca_grad),
-    ("Licenciatura en Desarrollo Rural", "Abra Pampa", "Licenciatura", "Ambiente y producción", "Cohorte 2024, modalidad especial. Confirmar si admite nuevos ingresantes.", fca_grad),
-    ("Licenciatura en Gestión Ambiental", "Humahuaca", "Licenciatura", "Ambiente y producción", "Duración: 5 años. Confirmar oferta vigente.", fca_grad),
-    ("Tecnicatura Universitaria en Producción de Animales de Granja", "Monterrico", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre),
-    ("Tecnicatura Universitaria en Mecanización Agrícola", "Perico", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre),
-    ("Tecnicatura Universitaria en Transformación de la Producción Agropecuaria", "Tilcara", "Tecnicatura universitaria", "Ambiente y producción", "Cohorte 2026, modalidad especial. Duración: 2 años y medio; consultar ingreso vigente.", fca_pre),
-    ("Tecnicatura Universitaria en Transformación de la Producción Agropecuaria", "Abra Pampa", "Tecnicatura universitaria", "Ambiente y producción", "Cohorte 2026, modalidad especial. Duración: 2 años y medio; consultar ingreso vigente.", fca_pre),
-    ("Tecnicatura Universitaria Forestal", "San Pedro", "Tecnicatura universitaria", "Ambiente y producción", "Duración: 2 años y medio.", fca_pre)
-]
-for name, locality, kind, area, note, source in fca_offerings:
-    # Cohortes especiales previas no equivalen a una convocatoria abierta.
-    if "Cohorte 2024" in note or "Cohorte 2026" in note:
-        continue
-    exists = ((df["Carrera / título"].astype(str).str.casefold() == name.casefold()) &
-              (df["Localidad"].astype(str).str.casefold() == locality.casefold()) &
-              (df["Institución"].astype(str).str.casefold().str.contains("agrarias|fca", regex=True))).any()
-    if not exists:
-        new_rows.append({
-            "Institución": "UNJu – Facultad de Ciencias Agrarias",
-            "Localidad": locality, "Carrera / título": name,
-            "Tipo de formación": kind, "Área principal preliminar": area,
-            "Observación": note + " Fuente: " + source
-        })
-# Producción Lechera: no se asigna una localidad sin sede confirmada;
-# además, la Facultad indica que no tiene inscripciones habilitadas.
-# FCE-UNJu: anuncio de ingreso 2027 aportado por la usuaria.
-# No inventar plazos ni estado de inscripción. Sede informada: San Salvador de Jujuy.
-fce_ingreso_url = "https://www.fce.unju.edu.ar/ingresofceunju"
-fce_2027 = ["Contador Público", "Licenciatura en Administración",
-            "Licenciatura en Economía Política"]
-# FHyCS-UNJu: oferta mostrada en la página oficial de ingreso.
-# Ingreso 2027 habilitado según confirmación de la usuaria; fechas individuales por consultar.
-fhycs_url = "https://fhycs.unju.edu.ar/ingreso/index.html"
-fhycs_offerings = [
-    ("Licenciatura en Antropología", ["San Salvador de Jujuy"], "5 años"),
-    ("Licenciatura en Ciencias de la Educación", ["San Salvador de Jujuy", "San Pedro"], "5 años"),
-    ("Tecnicatura en Turismo", ["Humahuaca", "El Carmen"], "Carrera articulada con Licenciatura en Turismo; duración total indicada: 4 años"),
-    ("Licenciatura en Turismo", ["Humahuaca", "El Carmen"], "Duración publicada para la propuesta Turismo: 4 años"),
-    ("Licenciatura en Educación para la Salud", ["San Salvador de Jujuy", "San Pedro"], "5 años y medio"),
-    ("Licenciatura en Historia", ["San Salvador de Jujuy"], "5 años"),
-    ("Profesorado en Filosofía", ["San Salvador de Jujuy"], "4 años; oferta conjunta con Licenciatura en Filosofía"),
-    ("Licenciatura en Filosofía", ["San Salvador de Jujuy"], "4 años; oferta conjunta con Profesorado en Filosofía"),
-    ("Profesorado en Letras", ["San Salvador de Jujuy"], "5 años"),
-    ("Profesorado en Educación para la Salud", ["San Salvador de Jujuy"], "4 años"),
-    ("Licenciatura en Trabajo Social", ["San Salvador de Jujuy", "Tilcara"], "5 años"),
-    ("Profesorado en Historia", ["San Salvador de Jujuy"], "5 años"),
-    ("Tecnicatura Universitaria en Gestión y Producción Editorial", ["San Salvador de Jujuy"], "3 años"),
-    ("Licenciatura en Letras", ["San Salvador de Jujuy"], "5 años"),
-    ("Licenciatura en Comunicación Social", ["San Salvador de Jujuy"], "4 años"),
-    ("Tecnicatura en Comunicación Digital Convergente", ["San Salvador de Jujuy"], "3 años")
-]
-# Evitar duplicar filas que ya figuran en el Excel. Se mantiene el estado no confirmado.
-for name, localities, duration in fhycs_offerings:
-    for locality in localities:
+            "Preinscripción": "1 al 25 de octubre de 2026",
+            "Curso": "Módulo I: Lectura y comprensión de textos (2–6 nov); Módulo II: Química y Física (9–13 nov); Módulo III: Introducción a la Enfermería (16–20 nov); Módulo IV: Morfofisiología (23–27 nov).",
+            "Examen": "18, 19 y 22 de febrero de 2027",
+            "Resultados": "Lista habilitada para rendir: 23 de diciembre de 2026. Resultados definitivos y orden de mérito: 24 de febrero de 2027.",
+            "Cupo": "140 estudiantes. Inicio de cursado: marzo de 2027."
+        }
+    ]
+    # Escuela Superior de Ciencias Jurídicas y Políticas, UNJu.
+    juridicas = [
+        ("Abogacía", "Abogado/a", "5 años", "https://escuelajuridica.unju.edu.ar/abogacia/"),
+        ("Licenciatura en Ciencia Política", "Licenciado/a en Ciencia Política", "4 años", "https://escuelajuridica.unju.edu.ar/licenciatura-en-ciencia-politica/")
+    ]
+    for name, title, duration, url in juridicas:
+        locality = "San Salvador de Jujuy"
+        note = ("Título: " + title + ". Duración: " + duration +
+                ". Escuela Superior de Ciencias Jurídicas y Políticas, UNJu. "
+                "Rectorado UNJu, Av. Bolivia 1239, San Salvador de Jujuy. "
+                "Fuente: " + url)
+        if name == "Abogacía":
+            note += " Ingreso 2027: preinscripción 1 al 25 de octubre de 2026; examen 23 al 26 de febrero de 2027."
         exists = ((df["Carrera / título"].astype(str).str.strip().str.casefold() == name.casefold()) &
                   (df["Localidad"].astype(str).str.strip().str.casefold() == locality.casefold())).any()
         pending = any(row["Carrera / título"].casefold() == name.casefold()
                       and row["Localidad"].casefold() == locality.casefold() for row in new_rows)
         if not exists and not pending:
             new_rows.append({
-                "Institución": "UNJu – Facultad de Humanidades y Ciencias Sociales",
-                "Localidad": locality, "Carrera / título": name,
-                "Tipo de formación": "Profesorado" if name.startswith("Profesorado") else ("Tecnicatura" if name.startswith("Tecnicatura") else "Licenciatura"),
-                "Área principal preliminar": "Educación y humanidades" if any(x in name for x in ("Educación", "Historia", "Filosofía", "Letras", "Antropología", "Editorial")) else "Ciencias sociales y comunicación",
-                "Observación": duration + ". Ingreso 2027 habilitado según información aportada por la usuaria. Fuente: " + fhycs_url
+                "Institución": "Universidad Nacional de Jujuy (UNJu)",
+                "Facultad": "Escuela Superior de Ciencias Jurídicas y Políticas",
+                "Lugar donde se dicta": "Rectorado UNJu - Av. Bolivia 1239",
+                "Localidad": locality,
+                "Carrera / título": name,
+                "Tipo de formación": "Licenciatura" if name.startswith("Licenciatura") else "Carrera universitaria de grado",
+                "Área principal preliminar": "Ciencias sociales y comunicación",
+                "Observación": note
             })
-# Convocatorias de ingreso 2027 comunicadas por el usuario.
-# Localidad de cursado indicada por la usuaria: San Salvador de Jujuy.
-admission_2027 = [
-    {
-        "Carrera": "Abogacía",
-        "Localidad": "San Salvador de Jujuy",
-        "Preinscripción": "1 al 25 de octubre de 2026",
-        "Curso": "Virtual por UNJu Virtual. Módulo I: Lectura y comprensión de textos en la práctica del derecho (2–6 nov); Módulo II: Introducción a las Ciencias Sociales (9–13 nov); Módulo III: Nociones básicas de derecho (16–20 nov).",
-        "Examen": "23 al 26 de febrero de 2027",
-        "Resultados": "Módulos: 27 de noviembre de 2026. Resultados definitivos y orden de mérito: 2 de marzo de 2027."
-    },
-    {
-        "Carrera": "Enfermería Universitaria",
-        "Localidad": "San Salvador de Jujuy",
-        "Preinscripción": "1 al 25 de octubre de 2026",
-        "Curso": "Módulo I: Lectura y comprensión de textos (2–6 nov); Módulo II: Química y Física (9–13 nov); Módulo III: Introducción a la Enfermería (16–20 nov); Módulo IV: Morfofisiología (23–27 nov).",
-        "Examen": "18, 19 y 22 de febrero de 2027",
-        "Resultados": "Lista habilitada para rendir: 23 de diciembre de 2026. Resultados definitivos y orden de mérito: 24 de febrero de 2027.",
-        "Cupo": "140 estudiantes. Inicio de cursado: marzo de 2027."
-    }
-]
-# Escuela Superior de Ciencias Jurídicas y Políticas, UNJu.
-juridicas = [
-    ("Abogacía", "Abogado/a", "5 años", "https://escuelajuridica.unju.edu.ar/abogacia/"),
-    ("Licenciatura en Ciencia Política", "Licenciado/a en Ciencia Política", "4 años", "https://escuelajuridica.unju.edu.ar/licenciatura-en-ciencia-politica/")
-]
-for name, title, duration, url in juridicas:
-    locality = "San Salvador de Jujuy"
-    note = ("Título: " + title + ". Duración: " + duration +
-            ". Escuela Superior de Ciencias Jurídicas y Políticas, UNJu. "
-            "Rectorado UNJu, Av. Bolivia 1239, San Salvador de Jujuy. "
-            "Fuente: " + url)
-    if name == "Abogacía":
-        note += " Ingreso 2027: preinscripción 1 al 25 de octubre de 2026; examen 23 al 26 de febrero de 2027."
-    exists = ((df["Carrera / título"].astype(str).str.strip().str.casefold() == name.casefold()) &
-              (df["Localidad"].astype(str).str.strip().str.casefold() == locality.casefold())).any()
-    pending = any(row["Carrera / título"].casefold() == name.casefold()
-                  and row["Localidad"].casefold() == locality.casefold() for row in new_rows)
-    if not exists and not pending:
-        new_rows.append({
-            "Institución": "Universidad Nacional de Jujuy (UNJu)",
-            "Facultad": "Escuela Superior de Ciencias Jurídicas y Políticas",
-            "Lugar donde se dicta": "Rectorado UNJu - Av. Bolivia 1239",
-            "Localidad": locality,
-            "Carrera / título": name,
-            "Tipo de formación": "Licenciatura" if name.startswith("Licenciatura") else "Carrera universitaria de grado",
-            "Área principal preliminar": "Ciencias sociales y comunicación",
-            "Observación": note
-        })
-if new_rows:
-    df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
-# Completar la unidad académica y dirección también para carreras preexistentes.
-for name, title, duration, url in juridicas:
-    match = ((df["Carrera / título"].astype(str).str.strip().str.casefold() == name.casefold()) &
-             (df["Localidad"].astype(str).str.strip().str.casefold() == "san salvador de jujuy"))
-    if match.any():
-        df.loc[match, "Institución"] = "Universidad Nacional de Jujuy (UNJu)"
-        df.loc[match, "Facultad"] = "Escuela Superior de Ciencias Jurídicas y Políticas"
-        df.loc[match, "Lugar donde se dicta"] = "Rectorado UNJu - Av. Bolivia 1239"
-        df.loc[match, "Observación"] = ("Título: " + title + ". Duración: " + duration +
-            ". Rectorado UNJu, Av. Bolivia 1239. Fuente: " + url +
-            (" Ingreso 2027: preinscripción del 1 al 25 de octubre de 2026." if name == "Abogacía" else ""))
-# Unificamos la escritura de localidades, incluso si el Excel trae mayúsculas.
-df["Localidad"] = df["Localidad"].astype(str).str.strip()
-df["Localidad"] = df["Localidad"].replace({
-    "LIBERTADOR GRAL SAN MARTÍN": "Libertador General San Martín",
-    "LIBERTADOR GRAL. SAN MARTÍN": "Libertador General San Martín",
-    "LIBERTADOR GENERAL SAN MARTÍN": "Libertador General San Martín",
-    "Libertador Gral. San Martín": "Libertador General San Martín"
-})
-# Unificar el registro general del primer año de Ingeniería en Libertador.
-# Las cuatro ingenierías ya figuran por separado con su título específico.
-umbrella = df["Carrera / título"].astype(str).str.contains(
-    "Cursado de Primer Año de las carreras de Ingeniería de Minas, Química, Informática e Industrial",
-    case=False, regex=False
-)
-df = df.loc[~umbrella].copy()
-# Esta plataforma presenta exclusivamente carreras de gestión ESTATAL.
-# Algunos institutos numerados son de gestión privada (IES 7 Populorum
-# Progressio e IES 8 Sagrado Corazón FASTA); tener número de IES no implica
-# pertenecer a la oferta pública provincial. Se aplica el filtro también
-# a carreras del respaldo histórico, aunque Google Sheets no esté disponible.
-def institucion_de_gestion_estatal(nombre):
-    import re
-    import unicodedata
-    texto = "".join(ch for ch in unicodedata.normalize("NFKD", str(nombre).casefold())
-                    if not unicodedata.combining(ch))
-    if any(part in texto for part in ("populorum", "fasta", "sagrado corazon")):
-        return False
-    ies = re.search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", texto)
-    if ies:
-        return int(ies.group(1)) in {1, 2, 3, 4, 5, 6, 9, 10, 11}
-    return any(s in texto for s in (
-        "unju", "universidad nacional de jujuy",
-        "utn", "universidad tecnologica nacional",
-        "universidad nacional de salta", "unsa",
-        "instituto superior de artes", "escuela superior de musica",
-        "escuela superior de danza", "escuela provincial de teatro",
-        "escuela provincial de artes",
-    ))
+    if new_rows:
+        df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True)
+    # Completar la unidad académica y dirección también para carreras preexistentes.
+    for name, title, duration, url in juridicas:
+        match = ((df["Carrera / título"].astype(str).str.strip().str.casefold() == name.casefold()) &
+                 (df["Localidad"].astype(str).str.strip().str.casefold() == "san salvador de jujuy"))
+        if match.any():
+            df.loc[match, "Institución"] = "Universidad Nacional de Jujuy (UNJu)"
+            df.loc[match, "Facultad"] = "Escuela Superior de Ciencias Jurídicas y Políticas"
+            df.loc[match, "Lugar donde se dicta"] = "Rectorado UNJu - Av. Bolivia 1239"
+            df.loc[match, "Observación"] = ("Título: " + title + ". Duración: " + duration +
+                ". Rectorado UNJu, Av. Bolivia 1239. Fuente: " + url +
+                (" Ingreso 2027: preinscripción del 1 al 25 de octubre de 2026." if name == "Abogacía" else ""))
+    # Unificamos la escritura de localidades, incluso si el Excel trae mayúsculas.
+    df["Localidad"] = df["Localidad"].astype(str).str.strip()
+    df["Localidad"] = df["Localidad"].replace({
+        "LIBERTADOR GRAL SAN MARTÍN": "Libertador General San Martín",
+        "LIBERTADOR GRAL. SAN MARTÍN": "Libertador General San Martín",
+        "LIBERTADOR GENERAL SAN MARTÍN": "Libertador General San Martín",
+        "Libertador Gral. San Martín": "Libertador General San Martín"
+    })
+    # Unificar el registro general del primer año de Ingeniería en Libertador.
+    # Las cuatro ingenierías ya figuran por separado con su título específico.
+    umbrella = df["Carrera / título"].astype(str).str.contains(
+        "Cursado de Primer Año de las carreras de Ingeniería de Minas, Química, Informática e Industrial",
+        case=False, regex=False
+    )
+    df = df.loc[~umbrella].copy()
+    # Esta plataforma presenta exclusivamente carreras de gestión ESTATAL.
+    # Algunos institutos numerados son de gestión privada (IES 7 Populorum
+    # Progressio e IES 8 Sagrado Corazón FASTA); tener número de IES no implica
+    # pertenecer a la oferta pública provincial. Se aplica el filtro también
+    # a carreras del respaldo histórico, aunque Google Sheets no esté disponible.
+    def institucion_de_gestion_estatal(nombre):
+        import re
+        import unicodedata
+        texto = "".join(ch for ch in unicodedata.normalize("NFKD", str(nombre).casefold())
+                        if not unicodedata.combining(ch))
+        if any(part in texto for part in ("populorum", "fasta", "sagrado corazon")):
+            return False
+        ies = re.search(r"(?:\bies\b|instituto de educacion superior)\s*(?:n[.°ºo]*\s*)?(\d+)\b", texto)
+        if ies:
+            return int(ies.group(1)) in {1, 2, 3, 4, 5, 6, 9, 10, 11}
+        return any(s in texto for s in (
+            "unju", "universidad nacional de jujuy",
+            "utn", "universidad tecnologica nacional",
+            "universidad nacional de salta", "unsa",
+            "instituto superior de artes", "escuela superior de musica",
+            "escuela superior de danza", "escuela provincial de teatro",
+            "escuela provincial de artes",
+        ))
+    
+    df = df[df["Institución"].map(institucion_de_gestion_estatal)].copy()
+    
+    # Evitar repeticiones de la misma carrera, institución y localidad.
+    # Si están tanto en el Excel anterior como en la base vigente, DEBE ganar
+    # la ficha de Google Sheets: contiene duración, contacto y sede confirmada.
+    if "_registro_actualizado" in df.columns:
+        df["_registro_actualizado"] = df["_registro_actualizado"].fillna(False).astype(bool)
+        df = df.sort_values("_registro_actualizado", ascending=False, kind="stable")
+    df["_clave_carrera"] = df["Carrera / título"].astype(str).str.strip().str.casefold()
+    df["_clave_localidad"] = df["Localidad"].astype(str).str.strip().str.casefold()
+    # Unificar variantes del nombre institucional (UNJu, UNJu - Facultad de...).
+    # Conservar carreras iguales en localidades diferentes.
+    def _clave_institucion_canonica(valor):
+        import unicodedata
+        t = "".join(x for x in unicodedata.normalize("NFKD", str(valor).casefold())
+                    if not unicodedata.combining(x))
+        if "unju" in t or "universidad nacional de jujuy" in t:
+            return "universidad nacional de jujuy"
+        t = _re.sub(r"\s*\(extension aulica\)", "", t)
+        return " ".join(t.split())
+    df["_clave_institucion"] = df["Institución"].map(_clave_institucion_canonica)
+    df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
+    df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion", "_registro_actualizado"], errors="ignore")
+    return df, fuente_carreras
 
-df = df[df["Institución"].map(institucion_de_gestion_estatal)].copy()
-
-# Evitar repeticiones de la misma carrera, institución y localidad.
-# Si están tanto en el Excel anterior como en la base vigente, DEBE ganar
-# la ficha de Google Sheets: contiene duración, contacto y sede confirmada.
-if "_registro_actualizado" in df.columns:
-    df["_registro_actualizado"] = df["_registro_actualizado"].fillna(False).astype(bool)
-    df = df.sort_values("_registro_actualizado", ascending=False, kind="stable")
-df["_clave_carrera"] = df["Carrera / título"].astype(str).str.strip().str.casefold()
-df["_clave_localidad"] = df["Localidad"].astype(str).str.strip().str.casefold()
-# Unificar variantes del nombre institucional (UNJu, UNJu - Facultad de...).
-# Conservar carreras iguales en localidades diferentes.
-def _clave_institucion_canonica(valor):
-    import unicodedata
-    t = "".join(x for x in unicodedata.normalize("NFKD", str(valor).casefold())
-                if not unicodedata.combining(x))
-    if "unju" in t or "universidad nacional de jujuy" in t:
-        return "universidad nacional de jujuy"
-    t = _re.sub(r"\s*\(extension aulica\)", "", t)
-    return " ".join(t.split())
-df["_clave_institucion"] = df["Institución"].map(_clave_institucion_canonica)
-df = df.drop_duplicates(subset=["_clave_carrera", "_clave_localidad", "_clave_institucion"])
-df = df.drop(columns=["_clave_carrera", "_clave_localidad", "_clave_institucion", "_registro_actualizado"], errors="ignore")
+df, fuente_carreras = preparar_catalogo()
+st.caption(f"📄 Oferta de gestión estatal · fuente: {fuente_carreras}. La plataforma consulta actualizaciones aproximadamente cada 5 minutos.")
 import re
 import unicodedata
 
