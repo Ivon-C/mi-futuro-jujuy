@@ -1335,7 +1335,6 @@ if seleccion_nav=="🏠 Inicio":
                 f'<div class="mf-card" style="background:{fondo};cursor:pointer">'
                 f'<span style="display:inline-flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:50%;background:{color};color:white;font-size:1.22rem;font-weight:850;letter-spacing:.5px;box-shadow:0 3px 8px #18334c1a">{numero}</span>'
                 f'<div class="mf-icon">{icono}</div><h3>{titulo}</h3><p>{descripcion}</p>'
-                f'<div style="text-align:center;font-weight:750;color:{color};padding-top:4px">{boton} →</div>'
                 f'</div></a>',
                 unsafe_allow_html=True,
             )
