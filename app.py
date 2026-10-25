@@ -1589,7 +1589,7 @@ if seleccion_nav=="📊 Mis intereses":
     questions = [(area, i, pregunta) for i in range(3) for area, preguntas in areas.items() for pregunta in [preguntas[i]]]
     opciones = ["1 — Nada", "2 — Poco", "3 — Bastante", "4 — Mucho", "No estoy seguro/a"]
     puntajes = {"1 — Nada": 1, "2 — Poco": 2, "3 — Bastante": 3, "4 — Mucho": 4, "No estoy seguro/a": 0}
-    version = "intereses_v4_4niveles_14areas"
+    version = "intereses_v5_4niveles_tarjetas"
     if st.session_state.get("intereses_version") != version:
         st.session_state.intereses_version = version
         st.session_state.intereses_paso = 0
@@ -1609,7 +1609,7 @@ if seleccion_nav=="📊 Mis intereses":
             for k in ("encuesta_edad", "encuesta_carrera_encontrada", "encuesta_carrera_faltante", "encuesta_mejoras"):
                 st.session_state.pop(k, None)
             for k in list(st.session_state.keys()):
-                if k.startswith(("intereses_opcion_v2_", "intereses_opcion_v3_", "intereses_opcion_v4_")):
+                if k.startswith(("intereses_opcion_v2_", "intereses_opcion_v3_", "intereses_opcion_v4_", "intereses_opcion_v5_")):
                     del st.session_state[k]
             st.rerun()
     else:
@@ -1620,67 +1620,93 @@ if seleccion_nav=="📊 Mis intereses":
         st.progress((paso + 1) / len(questions))
         st.markdown(f"### {actividad}")
         st.caption("¿Cuánto te interesaría realizar esta actividad?")
-        clave = f"intereses_opcion_v4_{paso}"
+        clave = f"intereses_opcion_v5_{paso}"
         if clave not in st.session_state and paso in st.session_state.intereses_respuestas:
             st.session_state[clave] = st.session_state.intereses_respuestas[paso]
         st.markdown("""
         <style>
-        .st-key-intereses_respuesta_visual [data-testid="stRadio"] div[role="radiogroup"] {
-            display: grid !important;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: .6rem;
-            align-items: stretch;
-        }
-        .st-key-intereses_respuesta_visual label[data-baseweb="radio"] {
-            box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 4.5rem;
-            padding: .75rem .55rem;
-            border: 1px solid #d8e4e1;
-            border-radius: 14px;
+        .st-key-intereses_respuesta_visual [data-testid="column"] {
+            border: 1px solid #d9e4e1;
+            border-radius: 16px;
+            padding: .55rem .45rem .35rem;
             background: #ffffff;
-            transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+            transition: background .16s ease, border-color .16s ease, box-shadow .16s ease;
         }
-        .st-key-intereses_respuesta_visual label[data-baseweb="radio"]:hover {
-            border-color: #11877d;
-            background: #f0faf8;
+        .st-key-intereses_respuesta_visual [data-testid="column"]:hover {
+            border-color: #13877d;
+            background: #f3faf8;
         }
-        .st-key-intereses_respuesta_visual label[data-baseweb="radio"]:has(input:checked) {
+        .st-key-intereses_respuesta_visual [data-testid="column"]:has(button[kind="primary"]) {
+            background: linear-gradient(145deg, #126d65, #159286);
+            border-color: #126d65;
+            box-shadow: 0 7px 18px rgba(18, 109, 101, .24);
+        }
+        .st-key-intereses_respuesta_visual .numero-respuesta {
+            min-height: 2.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #183b38;
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .st-key-intereses_respuesta_visual [data-testid="column"]:has(button[kind="primary"]) .numero-respuesta {
+            color: #ffffff;
+        }
+        .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
+            min-height: 3rem;
+            border-radius: 11px;
+            font-weight: 700;
+            white-space: normal;
+            line-height: 1.2;
+            border-color: transparent;
+            background: transparent;
+            color: #183b38;
+            padding: .4rem .25rem;
+        }
+        .st-key-intereses_respuesta_visual [data-testid="column"]:has(button[kind="primary"]) [data-testid="stButton"] > button {
             color: #ffffff !important;
-            background: linear-gradient(145deg, #126d65, #159286) !important;
-            border-color: #126d65 !important;
-            box-shadow: 0 5px 14px rgba(18, 109, 101, .22);
+            background: transparent !important;
+            border-color: transparent !important;
         }
-        .st-key-intereses_respuesta_visual label[data-baseweb="radio"]:has(input:checked) * {
+        .st-key-intereses_respuesta_visual [data-testid="column"]:has(button[kind="primary"]) [data-testid="stButton"] > button:hover {
             color: #ffffff !important;
-        }
-        .st-key-intereses_respuesta_visual label[data-baseweb="radio"] p {
-            margin: 0;
-            text-align: center;
-            font-weight: 650;
-            line-height: 1.25;
+            background: rgba(255, 255, 255, .12) !important;
         }
         @media (max-width: 700px) {
-            .st-key-intereses_respuesta_visual [data-testid="stRadio"] div[role="radiogroup"] {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+            .st-key-intereses_respuesta_visual [data-testid="column"] {
+                padding: .35rem .25rem .25rem;
             }
-            .st-key-intereses_respuesta_visual label[data-baseweb="radio"]:last-child {
-                grid-column: span 2;
+            .st-key-intereses_respuesta_visual [data-testid="stButton"] > button {
+                font-size: .85rem;
             }
         }
         </style>
         """, unsafe_allow_html=True)
         with st.container(key="intereses_respuesta_visual"):
-            seleccion = st.radio(
-                "Seleccioná una respuesta",
-                opciones,
-                index=None,
-                key=clave,
-                label_visibility="collapsed",
-                horizontal=True,
-            )
+            columnas_respuestas = st.columns(len(opciones), gap="small")
+            for indice_opcion, opcion in enumerate(opciones):
+                with columnas_respuestas[indice_opcion]:
+                    seleccionada = st.session_state.get(clave) == opcion
+                    if " — " in opcion:
+                        numero, etiqueta = opcion.split(" — ", 1)
+                    else:
+                        numero, etiqueta = "", opcion
+                    st.markdown(
+                        f'<div class="numero-respuesta">{numero or "&nbsp;"}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    if st.button(
+                        etiqueta,
+                        key=f"intereses_respuesta_card_{paso}_{indice_opcion}",
+                        type="primary" if seleccionada else "secondary",
+                        use_container_width=True,
+                    ):
+                        st.session_state[clave] = opcion
+                        st.session_state.intereses_respuestas[paso] = opcion
+                        st.rerun()
+            seleccion = st.session_state.get(clave)
         if seleccion is not None:
             st.session_state.intereses_respuestas[paso] = seleccion
         col_anterior, col_siguiente = st.columns(2)
