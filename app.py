@@ -1718,9 +1718,9 @@ if seleccion_nav=="📊 Mis intereses":
                 validas = [puntajes[x] for x in elegidas if x in puntajes and puntajes[x] > 0]
                 resultados[area] = sum(validas) / len(validas) if validas else None
             orden = sorted((a for a in areas if resultados[a] is not None), key=lambda a: resultados[a], reverse=True)
+            destacadas = orden[:3]
             st.subheader("🌟 Tu perfil exploratorio")
             if orden:
-                destacadas = orden[:3]
                 st.write("Estas son las áreas en las que expresaste mayor interés. Un empate no significa que una sea más importante que otra.")
                 fondos = ["#F0E8FF", "#E5F5F4", "#FFF1DB"]
                 acentos = ["#6D35B5", "#087C79", "#A66312"]
@@ -1833,6 +1833,18 @@ if seleccion_nav=="📊 Mis intereses":
                         help="Escribí solo tu edad en números. No se admiten letras.",
                         key="encuesta_edad",
                     )
+                    if destacadas:
+                        st.markdown("**Tus áreas sugeridas por el test:**")
+                        st.write(" · ".join(destacadas))
+                        ajuste_areas = st.radio(
+                            "¿Las áreas que te sugirió el test se relacionan con tus intereses?",
+                            ["Sí, me representan", "En parte", "No me representan", "No estoy seguro/a"],
+                            index=None,
+                            key="encuesta_ajuste_areas",
+                        )
+                    else:
+                        ajuste_areas = ""
+                        st.caption("No se generaron áreas sugeridas para este resultado; podés continuar con la encuesta.")
                     carrera_encontrada = st.radio(
                         "¿Encontraste en la app la carrera que te interesa?",
                         ["Sí", "No"],
@@ -1855,9 +1867,13 @@ if seleccion_nav=="📊 Mis intereses":
                     def preparar_envio_encuesta():
                         edad_actual = st.session_state.get("encuesta_edad")
                         encontrada_actual = st.session_state.get("encuesta_carrera_encontrada")
+                        ajuste_actual = st.session_state.get("encuesta_ajuste_areas")
                         faltante_actual = str(st.session_state.get("encuesta_carrera_faltante", "")).strip()
                         if edad_actual is None:
                             st.session_state.encuesta_error = "Ingresá tu edad usando solo números."
+                            return
+                        if destacadas and ajuste_actual is None:
+                            st.session_state.encuesta_error = "Indicá si las áreas sugeridas se relacionan con tus intereses."
                             return
                         if encontrada_actual is None:
                             st.session_state.encuesta_error = "Indicá si encontraste la carrera que te interesa."
@@ -1866,8 +1882,15 @@ if seleccion_nav=="📊 Mis intereses":
                             st.session_state.encuesta_error = "Contanos qué carrera buscabas y no encontraste."
                             return
                         st.session_state.encuesta_error = ""
+                        datos_areas = {}
+                        for posicion in range(3):
+                            area = destacadas[posicion] if posicion < len(destacadas) else ""
+                            datos_areas[f"area_{posicion + 1}"] = area
+                            datos_areas[f"puntaje_{posicion + 1}"] = round(float(resultados[area]), 2) if area else ""
                         st.session_state.encuesta_payload = {
                             "edad": int(edad_actual),
+                            "ajuste_areas": ajuste_actual if destacadas else "",
+                            **datos_areas,
                             "carrera_encontrada": encontrada_actual,
                             "carrera_faltante": faltante_actual if encontrada_actual == "No" else "",
                             "mejoras": str(st.session_state.get("encuesta_mejoras", "")).strip(),
